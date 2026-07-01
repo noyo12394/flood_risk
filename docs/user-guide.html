@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page { margin: 14mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1a2233; font-size: 10.3px; line-height: 1.42; margin: 0; }
+  h1 { font-size: 23px; margin: 0 0 2px; color: #10203f; }
+  .sub { color: #5a6b86; font-size: 11px; margin: 0 0 4px; }
+  .link { display: inline-block; background: #eaf1ff; border: 1px solid #b9d0ff; color: #1b4bd0; padding: 5px 10px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 11px; margin: 6px 0 12px; }
+  h2 { font-size: 13px; margin: 12px 0 5px; page-break-after: avoid; padding-bottom: 3px; border-bottom: 2px solid #e2e8f4; color: #12294f; }
+  h2 .chip { font-size: 10px; font-weight: 700; color: #fff; background: #2b6cff; border-radius: 5px; padding: 1px 7px; margin-left: 4px; }
+  h3 { font-size: 12px; margin: 10px 0 3px; color: #223; }
+  ol, ul { margin: 4px 0 8px; padding-left: 18px; }
+  li { margin-bottom: 3px; }
+  p { margin: 4px 0 8px; }
+  .legend { page-break-inside: avoid; background: #f5f8ff; border: 1px solid #e2e8f4; border-radius: 8px; padding: 8px 12px; margin: 8px 0; }
+  .goal { background: #f0fbf5; border-left: 3px solid #31c48d; padding: 6px 12px; border-radius: 6px; margin: 6px 0; }
+  .idea { page-break-inside: avoid; break-inside: avoid; background: #10203f; color: #eaf1ff; border-radius: 10px; padding: 14px 18px; margin: 10px 0; }
+  .idea .eq { font-size: 15px; font-weight: 800; text-align: center; margin: 2px 0 8px; color: #8fb4ff; }
+  .foot { color: #8090a8; font-size: 9.5px; margin-top: 14px; border-top: 1px solid #e2e8f4; padding-top: 6px; }
+  b, strong { color: #12294f; }
+  .two { display: flex; gap: 14px; }
+  .two > div { flex: 1; }
+</style>
+</head>
+<body>
+  <h1>FloodRisk FYRE — User Guide</h1>
+  <p class="sub">A 3D flood-resilience game for a riverside campus. Make decisions, watch the flood rise, see what fails.</p>
+  <a class="link" href="https://final-eight-theta-85.vercel.app/">▶ Play: final-eight-theta-85.vercel.app</a>
+
+  <h2>1. Open &amp; basic controls</h2>
+  <ol>
+    <li>Open the link above in a desktop browser (Chrome, Safari, Edge, Firefox).</li>
+    <li>On the start screen, choose one of the three modes below.</li>
+    <li>In any 3D view: <b>drag</b> = orbit · <b>scroll / pinch</b> = zoom · <b>click a building</b> = scan it (damage, flood depth, power, loss).</li>
+    <li>To exit a mode, click <b>✕</b> (top-left) or the <b>≈ logo</b> to return to the menu.</li>
+  </ol>
+  <div class="legend">
+    <b>Reading the campus:</b> lit windows = powered, dark windows = no power ·
+    cyan power lines = energized, red lines = failed ·
+    a red <b>⚡ OUT / ⚡ DARK</b> tag over a building means it lost power (DARK = dry but still lost power).
+  </div>
+
+  <h2>2. Live Drill <span class="chip">⏱ TIMED + SCORE</span></h2>
+  <p>A timed emergency. The clock runs, the river rises, you act before deadlines.</p>
+  <ol>
+    <li><b>Prep:</b> choose storm severity (Minor → Extreme) and tick the capital upgrades to buy up front (drainage, elevate buildings, raise substation, elevate roads). Stay within budget.</li>
+    <li>Click <b>Start the drill</b>. The clock begins and water rises.</li>
+    <li><b>Answer the alert cards</b> (deploy barriers, evacuate, sandbag the substation, close roads, open a shelter). Each has a shrinking timer — act before it runs out, or the option is lost. Acting <b>earlier</b> helps more.</li>
+    <li>Track the top bar: clock, water level, loss, people at risk, buildings dark, budget.</li>
+    <li>At the end you get a <b>resilience score (0–100) and grade</b>, broken down by loss avoided, people protected, lifelines, and budget.</li>
+    <li>Use <b>Re-run drill</b> to try other choices, or <b>Back to menu</b>.</li>
+  </ol>
+  <div class="goal"><b>Goal:</b> highest score = lowest loss, most people protected, power kept on, within budget.</div>
+
+  <h2>3. Decision Lab <span class="chip">⚖ COMPARE A vs B</span></h2>
+  <p>Two tabs at top-right: <b>Guided dilemmas</b> and <b>Free compare</b>.</p>
+  <div class="two">
+    <div>
+      <h3>Guided dilemmas</h3>
+      <ol>
+        <li>Read the situation and the two plans (A and B).</li>
+        <li>Click a plan chip to view that plan's campus in 3D; click the other to flip.</li>
+        <li><b>Predict:</b> click the plan you think is more resilient.</li>
+        <li>See both outcomes revealed side-by-side, plus the concept it teaches.</li>
+        <li><b>Next dilemma</b> to continue, or <b>Retry</b>.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Free compare</h3>
+      <ol>
+        <li>Set <b>Plan A</b> (left) and <b>Plan B</b> (right): a flood scenario + any mitigations.</li>
+        <li>Click a panel header (<b>view in 3D</b>) to show that plan's campus.</li>
+        <li>Read the <b>scoreboard</b>: damage, buildings dark, people, downtime, spend, cost of risk. The better value in each row is highlighted, with a recommended plan and one-line insight.</li>
+      </ol>
+    </div>
+  </div>
+
+  <h2>4. Sandbox <span class="chip">◇ FREE PLAY</span></h2>
+  <ol>
+    <li>Pick a <b>flood scenario</b> (top-right).</li>
+    <li>Toggle <b>mitigations</b> (left) — the 3D campus and CAT dashboard update instantly.</li>
+    <li>Switch <b>role</b> (Emergency Manager, Engineer, Budget Officer, Risk Analyst) to change what the dashboard emphasizes.</li>
+    <li><b>Click any building</b> to scan its details.</li>
+    <li>Click <b>Run before / after reflection</b> to compare your plan against doing nothing.</li>
+  </ol>
+
+  <div class="idea">
+    <div class="eq">Risk = Hazard × Exposure × Vulnerability</div>
+    You can't change the hazard (the flood), but you <b style="color:#fff">can</b> change exposure and vulnerability.
+    Watch for the <b style="color:#fff">cascade</b>: if the power substation floods, every building it feeds goes dark — even dry ones on high ground.
+    Often, protecting the lifeline (raising the substation, lowering the water) does more for resilience than reducing flood damage to individual buildings.
+  </div>
+
+  <p class="foot">Educational tool with simplified, illustrative data — not a research-grade model.</p>
+</body>
+</html>
