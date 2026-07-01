@@ -12,11 +12,13 @@
 
 import {
   ASSETS,
+  POWER_LINES,
   ROADS,
   assetGroundElev,
   type Asset,
   type FloodScenario,
   type MitigationId,
+  type PowerLine,
   type Road,
 } from './data'
 import { terrainElev } from './terrain'
@@ -62,6 +64,10 @@ export interface AssetResult {
   peopleAffected: number
   downtimeDays: number
   functional: boolean
+  // Power network state (cascading):
+  powered: boolean // receives grid power right now
+  dryButDark: boolean // undamaged by water yet knocked offline by the network
+  powerReason: 'ok' | 'flooded-substation' | 'downed-feeder' | 'damaged'
 }
 
 export interface RoadResult {
@@ -84,7 +90,9 @@ export interface ModelResult {
   peopleAffected: number
   criticalDown: number
   maxDowntimeDays: number
-  powerOut: boolean
+  powerOut: boolean // the substation itself is down
+  buildingsUnpowered: number // buildings with no grid power (any cause)
+  dryButDark: number // undamaged buildings knocked offline by the cascade
   evacuationBlocked: boolean
   // Money
   mitigationSpend: number
@@ -126,17 +134,83 @@ function roadThreshold(road: Road, m: MitigationState): number {
   return mean + (m.elevateRoads ? 0.8 : 0) + 0.15
 }
 
+// Restoration assumptions (days), following the repo's tiered downtime idea:
+// buildings ~7 / 15 / 60 days by severity; power & roads recover in ~3 days.
+const POWER_RESTORE_DAYS = 3
+function buildingRepairDays(damage: number): number {
+  if (damage <= 0.02) return 0
+  if (damage < 0.25) return 7
+  if (damage < 0.6) return 15
+  return 60
+}
+
+// Does a feeder line cross genuinely deep water along its MID span? We skip the
+// ends (the substation end is elevated/handled separately, the building end is
+// the building's own problem) so the substation stays the primary cascade point
+// and raising it can actually restore downstream power.
+function feederDown(line: PowerLine, waterElev: number): boolean {
+  const [x0, z0] = line.from
+  const [x1, z1] = line.to
+  for (const t of [0.4, 0.5, 0.6]) {
+    const x = x0 + (x1 - x0) * t
+    const z = z0 + (z1 - z0) * t
+    if (waterElev - terrainElev(x, z) > 1.8) return true
+  }
+  return false
+}
+
 export function computeAssets(m: MitigationState, waterElev: number, extra?: ExtraRaise): AssetResult[] {
-  return ASSETS.map((asset) => {
+  // Pass 1 — direct flood damage per asset.
+  const raw = ASSETS.map((asset) => {
     const groundElev = assetGroundElev(asset)
     const threshold = assetThreshold(asset, m, extra)
     const floodDepth = Math.max(0, waterElev - threshold)
     const damage = damageRatio(floodDepth, asset.fullDamageDepth)
+    return { asset, groundElev, threshold, floodDepth, damage }
+  })
+
+  // Pass 2 — cascading power. The substation is the campus feed; if it is
+  // knocked out (or a building's own feeder floods) that building goes dark
+  // even if it never saw water.
+  const substation = raw.find((r) => r.asset.kind === 'substation')
+  const substationUp = !!substation && substation.damage < 0.6
+
+  return raw.map(({ asset, groundElev, threshold, floodDepth, damage }) => {
     const state = damageStateFor(damage)
     const loss = damage * asset.value
-    const functional = damage < 0.6
-    const downtimeDays = Math.round(damage * (asset.critical ? 90 : 45))
-    const peopleAffected = Math.round(asset.occupants * Math.min(1, damage * 1.4))
+
+    let powered = true
+    let powerReason: AssetResult['powerReason'] = 'ok'
+    if (asset.kind === 'substation') {
+      powered = substationUp
+      powerReason = substationUp ? 'ok' : 'flooded-substation'
+    } else if (!substationUp) {
+      powered = false
+      powerReason = 'flooded-substation'
+    } else {
+      const feeder = POWER_LINES.find((l) => l.serves === asset.id)
+      if (feeder && feederDown(feeder, waterElev)) {
+        powered = false
+        powerReason = 'downed-feeder'
+      }
+    }
+    if (damage >= 0.6) powerReason = 'damaged'
+
+    // A building is only truly functional if it is both undamaged enough AND
+    // powered. Losing power alone takes it offline until the grid is restored.
+    const functional = damage < 0.6 && powered
+    const dryButDark = damage <= 0.02 && !powered && asset.kind !== 'substation'
+
+    const repairDays = buildingRepairDays(damage)
+    const downtimeDays = asset.kind === 'substation'
+      ? Math.round(damage * 90) || (powered ? 0 : POWER_RESTORE_DAYS)
+      : Math.max(repairDays, powered ? 0 : POWER_RESTORE_DAYS)
+
+    // People are affected by damage OR by loss of power (no heat/light/lifts).
+    const damageImpact = Math.min(1, damage * 1.4)
+    const impact = powered ? damageImpact : Math.max(damageImpact, 0.5)
+    const peopleAffected = Math.round(asset.occupants * impact)
+
     return {
       asset,
       groundElev,
@@ -149,6 +223,9 @@ export function computeAssets(m: MitigationState, waterElev: number, extra?: Ext
       peopleAffected,
       downtimeDays,
       functional,
+      powered,
+      dryButDark,
+      powerReason,
     }
   })
 }
@@ -180,6 +257,8 @@ export function runModel(scenario: FloodScenario, m: MitigationState): ModelResu
 
   const substation = assets.find((r) => r.asset.kind === 'substation')
   const powerOut = !!substation && !substation.functional
+  const buildingsUnpowered = assets.filter((r) => r.asset.kind !== 'substation' && !r.powered).length
+  const dryButDark = assets.filter((r) => r.dryButDark).length
   const evacuationBlocked = roads.filter((r) => !r.passable).length >= Math.ceil(roads.length / 2)
 
   const criticalDown = assets.filter((r) => r.asset.critical && !r.functional).length
@@ -210,6 +289,8 @@ export function runModel(scenario: FloodScenario, m: MitigationState): ModelResu
     criticalDown,
     maxDowntimeDays,
     powerOut,
+    buildingsUnpowered,
+    dryButDark,
     evacuationBlocked,
     mitigationSpend: 0, // filled in by the caller (knows costs + selection)
     expectedAnnualLoss,

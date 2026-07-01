@@ -199,6 +199,8 @@ export interface DrillSnapshot {
   totalLoss: number
   peopleAffected: number
   powerOut: boolean
+  buildingsDark: number
+  dryButDark: number
   routesBlocked: number
 }
 
@@ -225,9 +227,22 @@ export function evaluate(
   }
   const substation = assets.find((a) => a.asset.kind === 'substation')
   const powerOut = !!substation && !substation.functional
+  const buildingsDark = assets.filter((a) => a.asset.kind !== 'substation' && !a.powered).length
+  const dryButDark = assets.filter((a) => a.dryButDark).length
   const routesBlocked = roads.filter((r) => !r.passable).length
 
-  return { campusWater, maxCampusWater, assets, roads, totalLoss, peopleAffected, powerOut, routesBlocked }
+  return {
+    campusWater,
+    maxCampusWater,
+    assets,
+    roads,
+    totalLoss,
+    peopleAffected,
+    powerOut,
+    buildingsDark,
+    dryButDark,
+    routesBlocked,
+  }
 }
 
 function hazardReduction(m: MitigationState): number {

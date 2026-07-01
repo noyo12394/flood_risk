@@ -220,6 +220,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
               <LiveStat label="Loss so far" value={formatUSD(snapshot.totalLoss)} danger />
               <LiveStat label="People at risk" value={snapshot.peopleAffected.toLocaleString()} />
               <LiveStat label="Power" value={snapshot.powerOut ? 'OUT' : 'ON'} danger={snapshot.powerOut} />
+              <LiveStat label="Buildings dark" value={`${snapshot.buildingsDark}`} danger={snapshot.buildingsDark > 0} />
               <LiveStat label="Routes blocked" value={`${snapshot.routesBlocked}`} danger={snapshot.routesBlocked > 0} />
               <LiveStat label="Budget left" value={formatUSD(remaining)} danger={remaining < 0} />
             </div>
@@ -265,6 +266,11 @@ export function Drill({ onExit }: { onExit: () => void }) {
               <div className="scan-rows">
                 <ScanRow k="Damage" v={selected.state.toUpperCase()} color={DAMAGE_COLORS[selected.state]} />
                 <ScanRow k="Flood depth" v={selected.floodDepth > 0 ? `${selected.floodDepth.toFixed(2)} m` : 'dry'} />
+                <ScanRow
+                  k="Grid power"
+                  v={selected.powered ? 'powered' : selected.dryButDark ? 'DARK (cascade)' : 'OUT'}
+                  color={selected.powered ? '#31c48d' : '#ff4d5e'}
+                />
                 <ScanRow k="Est. loss" v={formatUSD(selected.loss)} />
               </div>
             </div>

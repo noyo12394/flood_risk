@@ -535,6 +535,17 @@ canvas {
   height: 7px;
 }
 
+.pw-out {
+  margin-left: 4px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #ffce5a;
+  background: rgba(255, 77, 94, 0.22);
+  padding: 1px 5px;
+  border-radius: 6px;
+}
+
 /* ---------------- Intro ---------------- */
 .intro {
   position: absolute;

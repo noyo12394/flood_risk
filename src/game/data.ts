@@ -84,7 +84,7 @@ function place(a: Omit<Asset, 'firstFloorHeight' | 'fullDamageDepth'> & Partial<
 }
 
 export const ASSETS: Asset[] = [
-  place({ id: 'substation', name: 'Power Substation', kind: 'substation', x: -6, z: 28, w: 9, d: 7, height: 4, floors: 1, value: 4_200_000, occupants: 5200, firstFloorHeight: 0.3, fullDamageDepth: 1.6, critical: true }),
+  place({ id: 'substation', name: 'Power Substation', kind: 'substation', x: -6, z: 28, w: 9, d: 7, height: 4, floors: 1, value: 4_200_000, occupants: 5200, firstFloorHeight: 0.9, fullDamageDepth: 1.6, critical: true }),
   place({ id: 'library', name: 'Linderman Library', kind: 'library', x: 12, z: 26, w: 12, d: 10, height: 15, floors: 4, value: 6_800_000, occupants: 900 }),
   place({ id: 'dorm-a', name: 'Riverside Dorm A', kind: 'dorm', x: -18, z: 22, w: 10, d: 9, height: 20, floors: 6, value: 5_400_000, occupants: 320 }),
   place({ id: 'classroom-1', name: 'Packard Classroom Hall', kind: 'classroom', x: 2, z: 19, w: 14, d: 9, height: 13, floors: 3, value: 3_900_000, occupants: 640 }),
@@ -109,6 +109,46 @@ export const ROADS: Road[] = [
   { id: 'hill-st', name: 'Hillcrest Street', points: [[-24, 6], [-8, 5], [8, 4], [26, 3]], width: 3.5 },
   { id: 'connector', name: 'Quad Connector', points: [[2, 30], [2, 19], [6, 6]], width: 3 },
 ]
+
+// ---------------------------------------------------------------------------
+// Power network — the FloodRiskBTP "system-of-systems" piece.
+// Grid intake (offsite source) -> on-campus substation -> feeder lines to each
+// building. If the substation floods, or a feeder line crosses deep water, the
+// buildings DOWNSTREAM lose power even when they are perfectly dry.
+// ---------------------------------------------------------------------------
+
+export interface PowerNode {
+  id: string
+  name: string
+  x: number
+  z: number
+}
+
+export interface PowerLine {
+  id: string
+  from: [number, number]
+  to: [number, number]
+  serves?: string // asset id this feeder powers (undefined for the trunk)
+  trunk?: boolean
+}
+
+// Offsite grid intake / generating source, sitting on high ground across the
+// river (stand-in for the repo's Calvert Cliffs / H. A. Wagner feeds).
+export const POWER_SOURCE: PowerNode = { id: 'grid', name: 'Regional Grid Intake', x: -40, z: 44 }
+
+export function buildPowerLines(): PowerLine[] {
+  const sub = ASSETS.find((a) => a.kind === 'substation')!
+  const lines: PowerLine[] = [
+    { id: 'trunk', from: [POWER_SOURCE.x, POWER_SOURCE.z], to: [sub.x, sub.z], trunk: true },
+  ]
+  for (const a of ASSETS) {
+    if (a.kind === 'substation') continue
+    lines.push({ id: `feed-${a.id}`, from: [sub.x, sub.z], to: [a.x, a.z], serves: a.id })
+  }
+  return lines
+}
+
+export const POWER_LINES: PowerLine[] = buildPowerLines()
 
 // ---------------------------------------------------------------------------
 

@@ -31,6 +31,16 @@ when you change exposure and vulnerability — not the hazard.*
 
 ## Features
 
+- **Cascading power network** — a grid intake → substation → feeder-line → building
+  topology (the FloodRiskBTP "system-of-systems" mechanic). When the riverside
+  substation floods, every downstream building loses power — *including dry
+  buildings on high ground that never touched water* — their windows go black and
+  the feeder lines turn red. Raising the substation (or lowering the water with
+  barriers/drainage) keeps the network energized (cyan lines). Recovery follows
+  tiered downtime: buildings ~7 / 15 / 60 days by severity, power/roads ~3 days.
+
+  ![cascading power outage](docs/cascade.png)
+
 - **Realistic procedural buildings** — brick / glass / concrete facades with lit
   windows, rooftop clutter and parapets, generated on a canvas (no downloaded
   assets). Windows go dark when a building loses power.

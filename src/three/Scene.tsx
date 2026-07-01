@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { Terrain, River } from './Terrain'
 import { FloodWater } from './Water'
 import { Roads } from './Roads'
+import { PowerLines } from './PowerLines'
 import { Building } from './Building'
 import type { AssetResult, RoadResult, MitigationState } from '../game/model'
 
@@ -57,6 +58,7 @@ export function Scene({ assets, roads, waterElev, mitigations, selectedId, showA
       <Terrain />
       <River />
       <Roads results={roads} raise={roadRaise} />
+      <PowerLines assets={assets} />
 
       {assets.map((r) => {
         const raise =

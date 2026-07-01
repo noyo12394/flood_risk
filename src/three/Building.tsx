@@ -48,7 +48,7 @@ interface Props {
 }
 
 export function Building({ result, raise, selected, showLabel, onSelect }: Props) {
-  const { asset, groundElev, state } = result
+  const { asset, groundElev, state, powered, dryButDark } = result
   const style = STYLE_FOR[asset.kind]
 
   if (asset.kind === 'substation') {
@@ -60,9 +60,10 @@ export function Building({ result, raise, selected, showLabel, onSelect }: Props
     [asset.id, style, asset.floors],
   )
 
-  // Windows go dark when the building loses power / is severely hit.
-  const emissiveIntensity = state === 'severe' ? 0.05 : state === 'moderate' ? 0.5 : 1.1
-  const wallTint = state === 'severe' ? '#8a94a5' : '#ffffff'
+  // Windows go dark when the building loses grid power — including dry buildings
+  // knocked offline by the cascading substation/feeder failure.
+  const emissiveIntensity = !powered ? 0.03 : state === 'severe' ? 0.05 : state === 'moderate' ? 0.5 : 1.1
+  const wallTint = state === 'severe' ? '#8a94a5' : !powered ? '#aeb6c4' : '#ffffff'
 
   const wallMat = useMemo(() => {
     return new THREE.MeshStandardMaterial({
@@ -129,11 +130,12 @@ export function Building({ result, raise, selected, showLabel, onSelect }: Props
       {/* Selection / damage marker on the ground. */}
       <SelectionRing radius={Math.max(w, d) * 0.75} color={ringColor} active={selected} y={groundElev + 0.06} />
 
-      {(selected || showLabel) && (
+      {(selected || showLabel || !powered) && (
         <Html position={[0, baseY + height + 2.4, 0]} center distanceFactor={38} zIndexRange={[10, 0]}>
           <div className={`asset-tag ${selected ? 'sel' : ''}`} style={{ borderColor: ringColor }}>
             <span className="dot" style={{ background: ringColor }} />
             {asset.name}
+            {!powered && <span className="pw-out">{dryButDark ? '⚡ DARK' : '⚡ OUT'}</span>}
           </div>
         </Html>
       )}
@@ -193,7 +195,7 @@ function Substation({ result, raise, selected, showLabel, onSelect }: Props) {
     () => new THREE.MeshStandardMaterial({ color: '#4a4f57', roughness: 0.9, metalness: 0.2 }),
     [],
   )
-  const live = state === 'safe' || state === 'minor'
+  const live = result.powered
   return (
     <group position={[asset.x, 0, asset.z]}>
       {raise > 0.05 && (

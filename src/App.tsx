@@ -175,6 +175,12 @@ export default function App() {
                 <Stat label="Total loss" value={formatUSD(result.totalLoss)} sub="this event" danger />
                 <Stat label="People affected" value={`${result.peopleAffected.toLocaleString()}`} sub="students / patients" />
                 <Stat label="Max downtime" value={`${result.maxDowntimeDays} d`} sub="worst asset" />
+                <Stat
+                  label="Buildings dark"
+                  value={`${result.buildingsUnpowered}`}
+                  sub={result.dryButDark > 0 ? `${result.dryButDark} dry & offline` : 'grid cascade'}
+                  danger={result.buildingsUnpowered > 0}
+                />
               </div>
 
               <RolePanel role={role} result={result} scenario={scenario} budgetRemaining={budgetRemaining} />
@@ -204,6 +210,11 @@ export default function App() {
               <div className="scan-rows">
                 <ScanRow k="Damage state" v={selected.state.toUpperCase()} color={DAMAGE_COLORS[selected.state]} />
                 <ScanRow k="Flood depth" v={selected.floodDepth > 0 ? `${selected.floodDepth.toFixed(2)} m` : 'dry'} />
+                <ScanRow
+                  k="Grid power"
+                  v={selected.powered ? 'powered' : selected.dryButDark ? 'DARK (cascade)' : 'OUT'}
+                  color={selected.powered ? '#31c48d' : '#ff4d5e'}
+                />
                 <ScanRow k="Ground elev." v={`${selected.groundElev.toFixed(1)} m`} />
                 <ScanRow k="Threshold" v={`${selected.threshold.toFixed(1)} m`} />
                 <ScanRow k="Est. loss" v={formatUSD(selected.loss)} />
