@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Scene } from './three/Scene'
+import { Drill } from './Drill'
 import {
   ASSETS,
   MITIGATIONS,
@@ -18,7 +19,7 @@ import {
 import { DAMAGE_COLORS } from './three/Building'
 
 export default function App() {
-  const [started, setStarted] = useState(false)
+  const [mode, setMode] = useState<'menu' | 'sandbox' | 'drill'>('menu')
   const [scenarioId, setScenarioId] = useState<(typeof SCENARIOS)[number]['id']>('major')
   const [role, setRole] = useState<RoleId>('engineer')
   const [mitigations, setMitigations] = useState<MitigationState>({ ...EMPTY_MITIGATIONS })
@@ -50,11 +51,15 @@ export default function App() {
     setMitigations((m) => ({ ...m, [id]: !m[id] }))
   }
 
+  if (mode === 'drill') return <Drill onExit={() => setMode('menu')} />
+
   return (
     <div className="app">
       <div className="scene-wrap">
         <Scene
-          result={result}
+          assets={result.assets}
+          roads={result.roads}
+          waterElev={result.effectiveWaterElev}
           mitigations={mitigations}
           selectedId={selectedId}
           showAllLabels={false}
@@ -62,17 +67,21 @@ export default function App() {
         />
       </div>
 
-      {!started && <IntroScreen onStart={() => setStarted(true)} />}
+      {mode === 'menu' && (
+        <IntroScreen onSandbox={() => setMode('sandbox')} onDrill={() => setMode('drill')} />
+      )}
 
-      {started && (
+      {mode === 'sandbox' && (
         <>
           {/* ---- Top bar: title + scenario + budget ---- */}
           <header className="topbar">
             <div className="brand">
-              <div className="logo">≈</div>
+              <button className="logo logo-btn" title="Back to menu" onClick={() => setMode('menu')}>
+                ≈
+              </button>
               <div>
                 <h1>FloodRisk FYRE</h1>
-                <p>Lehigh Resilience Challenge</p>
+                <p>Sandbox · Lehigh Resilience Challenge</p>
               </div>
             </div>
 
@@ -306,7 +315,7 @@ function RoleRow({ k, v, good, danger }: { k: string; v: string; good?: boolean;
   )
 }
 
-function IntroScreen({ onStart }: { onStart: () => void }) {
+function IntroScreen({ onSandbox, onDrill }: { onSandbox: () => void; onDrill: () => void }) {
   return (
     <div className="intro">
       <div className="intro-inner">
@@ -316,18 +325,31 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
         </h1>
         <p className="sub">Lehigh Resilience Challenge</p>
         <p className="lead">
-          A flood is inbound on the riverside campus. Step into the shoes of an emergency manager,
-          engineer, budget officer or risk analyst — choose mitigations before the water rises and
+          A flood is inbound on the riverside campus. Make the calls before and during the event and
           learn why <b>hazard × exposure × vulnerability = risk</b>.
         </p>
-        <ul className="intro-points">
-          <li>Pick a flood scenario, from a 10-year nuisance flood to a 500-year catastrophe.</li>
-          <li>Toggle barriers, drainage, building &amp; substation elevation, and road raising.</li>
-          <li>Watch the 3D floodwater rise and assets shift green → red in real time.</li>
-        </ul>
-        <button className="enter" onClick={onStart}>
-          Enter the Flood Lab →
-        </button>
+
+        <div className="mode-cards">
+          <button className="mode-card drill" onClick={onDrill}>
+            <span className="mc-tag">⏱ REAL-TIME</span>
+            <strong>Live Drill</strong>
+            <span className="mc-desc">
+              A clock runs and the flood rises in real time. Pre-commit capital mitigations, then make
+              timed emergency decisions before the deadlines — and get a resilience score.
+            </span>
+            <span className="mc-go">Start the drill →</span>
+          </button>
+          <button className="mode-card" onClick={onSandbox}>
+            <span className="mc-tag alt">◇ EXPLORE</span>
+            <strong>Sandbox</strong>
+            <span className="mc-desc">
+              No clock. Switch roles, toggle mitigations across four flood scenarios, scan assets and
+              compare before/after loss at your own pace.
+            </span>
+            <span className="mc-go">Open the lab →</span>
+          </button>
+        </div>
+
         <p className="foot">Educational MVP · simplified fragility &amp; cost data</p>
       </div>
     </div>

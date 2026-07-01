@@ -92,20 +92,32 @@ export interface ModelResult {
   suggestedPremium: number
 }
 
+// Extra, real-time protection (e.g. sandbagging in the live drill) that raises
+// a specific asset's threshold on top of any capital mitigations.
+export type ExtraRaise = Partial<Record<string, number>> // keyed by asset id
+
 // Threshold elevation for an asset given active mitigations.
-function assetThreshold(a: Asset, m: MitigationState): number {
+function assetThreshold(a: Asset, m: MitigationState, extra?: ExtraRaise): number {
   let raise = 0
   if (m.elevateBuildings && a.kind !== 'substation') raise += 1.2
   if (m.raiseSubstation && a.kind === 'substation') raise += 1.8
+  if (extra && extra[a.id]) raise += extra[a.id]!
   return assetGroundElev(a) + a.firstFloorHeight + raise
 }
 
 // Campus-wide water surface elevation after hazard-reducing mitigations.
+// Barriers only help if they are actually in place (the live drill decides this
+// dynamically), so hazard reductions are expressed as a separate metre value.
+export function campusWaterElevation(riverElev: number, reductionMetres: number): number {
+  return riverElev - reductionMetres
+}
+
+function hazardReductionFor(m: MitigationState): number {
+  return (m.floodGates ? 0.9 : 0) + (m.improveDrainage ? 0.6 : 0)
+}
+
 function effectiveWaterElevation(scenario: FloodScenario, m: MitigationState): number {
-  let elev = scenario.peakElevation
-  if (m.floodGates) elev -= 0.9
-  if (m.improveDrainage) elev -= 0.6
-  return elev
+  return campusWaterElevation(scenario.peakElevation, hazardReductionFor(m))
 }
 
 function roadThreshold(road: Road, m: MitigationState): number {
@@ -114,10 +126,10 @@ function roadThreshold(road: Road, m: MitigationState): number {
   return mean + (m.elevateRoads ? 0.8 : 0) + 0.15
 }
 
-function computeAssets(m: MitigationState, waterElev: number): AssetResult[] {
+export function computeAssets(m: MitigationState, waterElev: number, extra?: ExtraRaise): AssetResult[] {
   return ASSETS.map((asset) => {
     const groundElev = assetGroundElev(asset)
-    const threshold = assetThreshold(asset, m)
+    const threshold = assetThreshold(asset, m, extra)
     const floodDepth = Math.max(0, waterElev - threshold)
     const damage = damageRatio(floodDepth, asset.fullDamageDepth)
     const state = damageStateFor(damage)
@@ -141,7 +153,7 @@ function computeAssets(m: MitigationState, waterElev: number): AssetResult[] {
   })
 }
 
-function computeRoads(m: MitigationState, waterElev: number): RoadResult[] {
+export function computeRoads(m: MitigationState, waterElev: number): RoadResult[] {
   return ROADS.map((road) => {
     let flooded = 0
     for (const [x, z] of road.points) {

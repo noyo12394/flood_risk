@@ -13,6 +13,22 @@ when you change exposure and vulnerability — not the hazard.*
 
 ![screenshot](docs/screenshot.png)
 
+| Live drill (real-time decisions) | Resilience scorecard |
+| --- | --- |
+| ![live drill](docs/live-drill.png) | ![scorecard](docs/scorecard.png) |
+
+## Two modes
+
+- **⏱ Live Drill (real-time decision-maker)** — pre-commit capital mitigations
+  within budget, then a clock runs and the river rises in real time. Timed
+  decision cards demand emergency calls (deploy barriers, order evacuation,
+  sandbag the substation, close roads) *before the deadlines* — act too late and
+  the benefit is lost. Ends with a **0–100 resilience score and letter grade**
+  broken down by loss avoided, people protected, lifelines kept online and
+  budget discipline. Engine: `src/game/drill.ts`, UI: `src/Drill.tsx`.
+- **◇ Sandbox** — no clock. Switch roles, toggle mitigations across four flood
+  scenarios, scan assets, and compare before/after loss at your own pace.
+
 ## Features
 
 - **Realistic procedural buildings** — brick / glass / concrete facades with lit
@@ -40,6 +56,17 @@ The numbers are **made-up-but-reasonable teaching values**, not a research-grade
 model. `src/game/data.ts` (assets, costs, fragility) and `src/game/model.ts`
 (the CAT formulas) are the two files to edit to swap in real Lehigh / INCORE data
 later.
+
+### Connecting to the research model (INCORE) later
+
+This game is the **educational front end**; the research-grade catastrophe model
+lives in the reference repo
+[`sushreyomisra07/FloodRiskBTP`](https://github.com/sushreyomisra07/FloodRiskBTP),
+which runs on [INCORE](https://tools.in-core.org) (free account required). The
+intended path is to keep this fast in-browser toy model for the live demo, then
+have a small backend expose INCORE/FloodRiskBTP results (or a forked toy dataset)
+through the same shape the game already consumes in `src/game/`. No INCORE login
+is needed to run or demo this game.
 
 ## Run locally
 

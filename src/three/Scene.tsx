@@ -5,18 +5,19 @@ import { Terrain, River } from './Terrain'
 import { FloodWater } from './Water'
 import { Roads } from './Roads'
 import { Building } from './Building'
-import type { ModelResult } from '../game/model'
-import type { MitigationState } from '../game/model'
+import type { AssetResult, RoadResult, MitigationState } from '../game/model'
 
 interface Props {
-  result: ModelResult
+  assets: AssetResult[]
+  roads: RoadResult[]
+  waterElev: number
   mitigations: MitigationState
   selectedId: string | null
   showAllLabels: boolean
   onSelect: (id: string | null) => void
 }
 
-export function Scene({ result, mitigations, selectedId, showAllLabels, onSelect }: Props) {
+export function Scene({ assets, roads, waterElev, mitigations, selectedId, showAllLabels, onSelect }: Props) {
   const roadRaise = mitigations.elevateRoads ? 0.8 : 0
 
   return (
@@ -55,9 +56,9 @@ export function Scene({ result, mitigations, selectedId, showAllLabels, onSelect
 
       <Terrain />
       <River />
-      <Roads results={result.roads} raise={roadRaise} />
+      <Roads results={roads} raise={roadRaise} />
 
-      {result.assets.map((r) => {
+      {assets.map((r) => {
         const raise =
           r.asset.kind === 'substation'
             ? mitigations.raiseSubstation
@@ -78,7 +79,7 @@ export function Scene({ result, mitigations, selectedId, showAllLabels, onSelect
         )
       })}
 
-      <FloodWater targetElev={result.effectiveWaterElev} />
+      <FloodWater targetElev={waterElev} />
 
       <OrbitControls
         enableDamping
