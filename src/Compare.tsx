@@ -136,7 +136,7 @@ function Guided({
           </div>
         ) : (
           <>
-            <div className={`verdict ${predictedRight ? 'right' : 'wrong'}`}>
+            <div className={`verdict ${predictedRight ? 'pass' : 'fail'}`}>
               {predictedRight ? '✓ Good call.' : '✗ Not quite.'} The more resilient choice is{' '}
               <b>{correctFocus === 'a' ? d.planA.label : d.planB.label}</b>.
             </div>

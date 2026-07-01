@@ -180,7 +180,7 @@ canvas {
 }
 
 /* ---------------- Left column ---------------- */
-.left {
+.hud-left {
   position: absolute;
   top: 96px;
   left: 16px;
@@ -308,7 +308,7 @@ canvas {
 }
 
 /* ---------------- Right column ---------------- */
-.right {
+.hud-right {
   position: absolute;
   top: 96px;
   right: 16px;
@@ -762,26 +762,26 @@ canvas {
 }
 
 /* ---------------- Scrollbars ---------------- */
-.left::-webkit-scrollbar,
-.right::-webkit-scrollbar {
+.hud-left::-webkit-scrollbar,
+.hud-right::-webkit-scrollbar {
   width: 6px;
 }
 
-.left::-webkit-scrollbar-thumb,
-.right::-webkit-scrollbar-thumb {
+.hud-left::-webkit-scrollbar-thumb,
+.hud-right::-webkit-scrollbar-thumb {
   background: rgba(120, 150, 210, 0.25);
   border-radius: 3px;
 }
 
 /* ---------------- Responsive ---------------- */
 @media (max-width: 900px) {
-  .left,
-  .right {
+  .hud-left,
+  .hud-right {
     position: absolute;
     width: calc(100vw - 32px);
     max-height: 40vh;
   }
-  .right {
+  .hud-right {
     top: auto;
     bottom: 16px;
   }
@@ -1431,12 +1431,12 @@ canvas {
   font-size: 13.5px;
   margin-bottom: 14px;
 }
-.verdict.right {
+.verdict.pass {
   background: rgba(49, 196, 141, 0.13);
   border: 1px solid rgba(49, 196, 141, 0.3);
   color: #bfe6cf;
 }
-.verdict.wrong {
+.verdict.fail {
   background: rgba(255, 122, 69, 0.13);
   border: 1px solid rgba(255, 122, 69, 0.3);
   color: #ffccb3;

@@ -119,7 +119,7 @@ export default function App() {
           </header>
 
           {/* ---- Left: roles + mitigations ---- */}
-          <aside className="left">
+          <aside className="hud-left">
             <section className="panel">
               <h2>Choose your role</h2>
               <div className="roles">
@@ -167,7 +167,7 @@ export default function App() {
           </aside>
 
           {/* ---- Right: CAT dashboard ---- */}
-          <aside className="right">
+          <aside className="hud-right">
             <section className="panel">
               <h2>CAT model dashboard</h2>
               <p className="equation">

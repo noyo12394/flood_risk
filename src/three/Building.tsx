@@ -131,7 +131,7 @@ export function Building({ result, raise, selected, showLabel, onSelect }: Props
       <SelectionRing radius={Math.max(w, d) * 0.75} color={ringColor} active={selected} y={groundElev + 0.06} />
 
       {(selected || showLabel || !powered) && (
-        <Html position={[0, baseY + height + 2.4, 0]} center distanceFactor={38} zIndexRange={[10, 0]}>
+        <Html position={[0, baseY + height + 2.4, 0]} center distanceFactor={38} zIndexRange={[2, 0]}>
           <div className={`asset-tag ${selected ? 'sel' : ''}`} style={{ borderColor: ringColor }}>
             <span className="dot" style={{ background: ringColor }} />
             {asset.name}
@@ -249,7 +249,7 @@ function Substation({ result, raise, selected, showLabel, onSelect }: Props) {
       </mesh>
       <SelectionRing radius={Math.max(asset.w, asset.d) * 0.7} color={ringColor} active={selected} y={groundElev + 0.06} />
       {(selected || showLabel) && (
-        <Html position={[0, baseY + 4.4, 0]} center distanceFactor={38}>
+        <Html position={[0, baseY + 4.4, 0]} center distanceFactor={38} zIndexRange={[2, 0]}>
           <div className={`asset-tag ${selected ? 'sel' : ''}`} style={{ borderColor: ringColor }}>
             <span className="dot" style={{ background: ringColor }} />
             {asset.name} {live ? '' : '· OFFLINE'}
