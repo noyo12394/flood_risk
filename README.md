@@ -17,7 +17,7 @@ when you change exposure and vulnerability — not the hazard.*
 | --- | --- |
 | ![live drill](docs/live-drill.png) | ![scorecard](docs/scorecard.png) |
 
-## Two modes
+## Modes
 
 - **⏱ Live Drill (real-time decision-maker)** — pre-commit capital mitigations
   within budget, then a clock runs and the river rises in real time. Timed
@@ -26,6 +26,17 @@ when you change exposure and vulnerability — not the hazard.*
   the benefit is lost. Ends with a **0–100 resilience score and letter grade**
   broken down by loss avoided, people protected, lifelines kept online and
   budget discipline. Engine: `src/game/drill.ts`, UI: `src/Drill.tsx`.
+- **⚖ Decision Lab (Plan A vs Plan B)** — teach the concepts by comparison.
+  *Guided dilemmas* pose a choice (e.g. "lower the water vs. protect the
+  substation"), ask the student to **predict**, then reveal both outcomes
+  side-by-side with a plain-language "what happens" and the concept behind the
+  difference. *Free compare* lets students build their own two plans and see a
+  side-by-side scoreboard (damage, buildings dark, people, downtime, spend, cost
+  of risk) with an auto-generated recommendation and insight. Engine:
+  `src/game/compare.ts`, UI: `src/Compare.tsx`.
+
+  ![decision lab](docs/decision-lab.png)
+
 - **◇ Sandbox** — no clock. Switch roles, toggle mitigations across four flood
   scenarios, scan assets, and compare before/after loss at your own pace.
 

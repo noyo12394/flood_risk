@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Scene } from './three/Scene'
 import { Drill } from './Drill'
+import { Compare } from './Compare'
 import {
   ASSETS,
   MITIGATIONS,
@@ -19,7 +20,7 @@ import {
 import { DAMAGE_COLORS } from './three/Building'
 
 export default function App() {
-  const [mode, setMode] = useState<'menu' | 'sandbox' | 'drill'>('menu')
+  const [mode, setMode] = useState<'menu' | 'sandbox' | 'drill' | 'compare'>('menu')
   const [scenarioId, setScenarioId] = useState<(typeof SCENARIOS)[number]['id']>('major')
   const [role, setRole] = useState<RoleId>('engineer')
   const [mitigations, setMitigations] = useState<MitigationState>({ ...EMPTY_MITIGATIONS })
@@ -52,6 +53,7 @@ export default function App() {
   }
 
   if (mode === 'drill') return <Drill onExit={() => setMode('menu')} />
+  if (mode === 'compare') return <Compare onExit={() => setMode('menu')} />
 
   return (
     <div className="app">
@@ -68,7 +70,11 @@ export default function App() {
       </div>
 
       {mode === 'menu' && (
-        <IntroScreen onSandbox={() => setMode('sandbox')} onDrill={() => setMode('drill')} />
+        <IntroScreen
+          onSandbox={() => setMode('sandbox')}
+          onDrill={() => setMode('drill')}
+          onCompare={() => setMode('compare')}
+        />
       )}
 
       {mode === 'sandbox' && (
@@ -326,7 +332,15 @@ function RoleRow({ k, v, good, danger }: { k: string; v: string; good?: boolean;
   )
 }
 
-function IntroScreen({ onSandbox, onDrill }: { onSandbox: () => void; onDrill: () => void }) {
+function IntroScreen({
+  onSandbox,
+  onDrill,
+  onCompare,
+}: {
+  onSandbox: () => void
+  onDrill: () => void
+  onCompare: () => void
+}) {
   return (
     <div className="intro">
       <div className="intro-inner">
@@ -349,6 +363,15 @@ function IntroScreen({ onSandbox, onDrill }: { onSandbox: () => void; onDrill: (
               timed emergency decisions before the deadlines — and get a resilience score.
             </span>
             <span className="mc-go">Start the drill →</span>
+          </button>
+          <button className="mode-card compare" onClick={onCompare}>
+            <span className="mc-tag cmp">⚖ COMPARE</span>
+            <strong>Decision Lab</strong>
+            <span className="mc-desc">
+              Plan A vs Plan B. Predict, then see the implications of each side-by-side — guided
+              dilemmas that teach the concepts, plus a free builder to compare your own two plans.
+            </span>
+            <span className="mc-go">Compare plans →</span>
           </button>
           <button className="mode-card" onClick={onSandbox}>
             <span className="mc-tag alt">◇ EXPLORE</span>
