@@ -15,10 +15,11 @@ interface Props {
   mitigations: MitigationState
   selectedId: string | null
   showAllLabels: boolean
+  ringOverride?: Record<string, string>
   onSelect: (id: string | null) => void
 }
 
-export function Scene({ assets, roads, waterElev, mitigations, selectedId, showAllLabels, onSelect }: Props) {
+export function Scene({ assets, roads, waterElev, mitigations, selectedId, showAllLabels, ringOverride, onSelect }: Props) {
   const roadRaise = mitigations.elevateRoads ? 0.8 : 0
 
   return (
@@ -76,6 +77,7 @@ export function Scene({ assets, roads, waterElev, mitigations, selectedId, showA
             raise={raise}
             selected={selectedId === r.asset.id}
             showLabel={showAllLabels}
+            ringColor={ringOverride?.[r.asset.id]}
             onSelect={() => onSelect(r.asset.id)}
           />
         )

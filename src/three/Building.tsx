@@ -44,15 +44,25 @@ interface Props {
   raise: number // metres the building is elevated (plinth height)
   selected: boolean
   showLabel: boolean
+  ringColor?: string // optional override for the ground ring (e.g. insurance mode)
   onSelect: () => void
 }
 
-export function Building({ result, raise, selected, showLabel, onSelect }: Props) {
+export function Building({ result, raise, selected, showLabel, ringColor: ringOverride, onSelect }: Props) {
   const { asset, groundElev, state, powered, dryButDark } = result
   const style = STYLE_FOR[asset.kind]
 
   if (asset.kind === 'substation') {
-    return <Substation result={result} raise={raise} selected={selected} showLabel={showLabel} onSelect={onSelect} />
+    return (
+      <Substation
+        result={result}
+        raise={raise}
+        selected={selected}
+        showLabel={showLabel}
+        ringColor={ringOverride}
+        onSelect={onSelect}
+      />
+    )
   }
 
   const { map, emissive, roughness } = useMemo(
@@ -90,7 +100,7 @@ export function Building({ result, raise, selected, showLabel, onSelect }: Props
 
   const { w, d, height } = asset
   const baseY = groundElev + raise
-  const ringColor = DAMAGE_COLORS[state]
+  const ringColor = ringOverride ?? DAMAGE_COLORS[state]
 
   return (
     <group position={[asset.x, 0, asset.z]}>
@@ -183,10 +193,10 @@ function SelectionRing({ radius, color, active, y }: { radius: number; color: st
   )
 }
 
-function Substation({ result, raise, selected, showLabel, onSelect }: Props) {
+function Substation({ result, raise, selected, showLabel, ringColor: ringOverride, onSelect }: Props) {
   const { asset, groundElev, state } = result
   const baseY = groundElev + raise
-  const ringColor = DAMAGE_COLORS[state]
+  const ringColor = ringOverride ?? DAMAGE_COLORS[state]
   const metal = useMemo(
     () => new THREE.MeshStandardMaterial({ color: '#7d858f', roughness: 0.6, metalness: 0.7 }),
     [],

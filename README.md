@@ -37,8 +37,20 @@ when you change exposure and vulnerability — not the hazard.*
 
   ![decision lab](docs/decision-lab.png)
 
+- **$ Insurance Desk** — price the flood risk like an actuary. Computes each
+  building's **Expected Annual Loss** (integrated over the flood loss-exceedance
+  curve), then the full premium anatomy — pure / gross premium, loading,
+  deductible, co-insurance, **PML** at return periods, and the **loss / expense /
+  combined ratio** — under three strategies (flat, actuarially fair,
+  affordability-capped). A Coverage / Affordability / Profitability triad scores
+  the book 0–100. This ports the math and vocabulary of the FYRE Week-4 insurance
+  tool (`insurance_pricing_tool.py`) to the flood context. Engine:
+  `src/game/insurance.ts`, UI: `src/Insurance.tsx`.
+
 - **◇ Sandbox** — no clock. Switch roles, toggle mitigations across four flood
-  scenarios, scan assets, and compare before/after loss at your own pace.
+  scenarios, scan assets, and compare before/after loss at your own pace. The
+  Risk / Insurance Analyst role now surfaces portfolio EAL, the actuarially-fair
+  premium and the combined ratio.
 
 ## Features
 

@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { Scene } from './three/Scene'
 import { Drill } from './Drill'
 import { Compare } from './Compare'
+import { Insurance } from './Insurance'
+import { portfolioSummary } from './game/insurance'
 import {
   ASSETS,
   MITIGATIONS,
@@ -20,7 +22,7 @@ import {
 import { DAMAGE_COLORS } from './three/Building'
 
 export default function App() {
-  const [mode, setMode] = useState<'menu' | 'sandbox' | 'drill' | 'compare'>('menu')
+  const [mode, setMode] = useState<'menu' | 'sandbox' | 'drill' | 'compare' | 'insurance'>('menu')
   const [scenarioId, setScenarioId] = useState<(typeof SCENARIOS)[number]['id']>('major')
   const [role, setRole] = useState<RoleId>('engineer')
   const [mitigations, setMitigations] = useState<MitigationState>({ ...EMPTY_MITIGATIONS })
@@ -54,6 +56,7 @@ export default function App() {
 
   if (mode === 'drill') return <Drill onExit={() => setMode('menu')} />
   if (mode === 'compare') return <Compare onExit={() => setMode('menu')} />
+  if (mode === 'insurance') return <Insurance onExit={() => setMode('menu')} />
 
   return (
     <div className="app">
@@ -74,6 +77,7 @@ export default function App() {
           onSandbox={() => setMode('sandbox')}
           onDrill={() => setMode('drill')}
           onCompare={() => setMode('compare')}
+          onInsurance={() => setMode('insurance')}
         />
       )}
 
@@ -282,12 +286,13 @@ function RolePanel({
   budgetRemaining: number
 }) {
   if (role === 'analyst') {
+    const ins = portfolioSummary()
     return (
       <div className="role-panel">
-        <RoleRow k="Annual probability" v={`${(scenario.annualProbability * 100).toFixed(1)}% (1-in-${scenario.returnPeriod})`} />
-        <RoleRow k="Expected annual loss" v={formatUSD(result.expectedAnnualLoss)} />
-        <RoleRow k="Suggested premium" v={formatUSD(result.suggestedPremium)} />
-        <RoleRow k="Modelled payout" v={formatUSD(result.totalLoss)} />
+        <RoleRow k="Portfolio EAL (pure premium)" v={formatUSD(ins.totalEal)} />
+        <RoleRow k="Actuarially-fair premium" v={formatUSD(ins.totalPremium)} />
+        <RoleRow k="Combined ratio" v={`${(ins.combinedRatio * 100).toFixed(0)}%`} good={ins.combinedRatio < 1} danger={ins.combinedRatio >= 1} />
+        <RoleRow k={`PML (1-in-${scenario.returnPeriod})`} v={formatUSD(result.totalLoss)} />
       </div>
     )
   }
@@ -336,10 +341,12 @@ function IntroScreen({
   onSandbox,
   onDrill,
   onCompare,
+  onInsurance,
 }: {
   onSandbox: () => void
   onDrill: () => void
   onCompare: () => void
+  onInsurance: () => void
 }) {
   return (
     <div className="intro">
@@ -372,6 +379,15 @@ function IntroScreen({
               dilemmas that teach the concepts, plus a free builder to compare your own two plans.
             </span>
             <span className="mc-go">Compare plans →</span>
+          </button>
+          <button className="mode-card insurance" onClick={onInsurance}>
+            <span className="mc-tag ins">$ PRICE RISK</span>
+            <strong>Insurance Desk</strong>
+            <span className="mc-desc">
+              Price the flood risk like an actuary: expected annual loss, premiums, deductibles, PML
+              and the combined ratio — with a coverage / affordability / profitability score.
+            </span>
+            <span className="mc-go">Open the desk →</span>
           </button>
           <button className="mode-card" onClick={onSandbox}>
             <span className="mc-tag alt">◇ EXPLORE</span>

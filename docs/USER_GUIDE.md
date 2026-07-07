@@ -69,7 +69,23 @@ Two tabs at the top-right: **Guided dilemmas** and **Free compare**.
 
 ---
 
-## 4. Sandbox  ◇  (free exploration, no clock)
+## 4. Insurance Desk  $  (price the risk like an actuary)
+
+1. **Pick a pricing strategy** (left): Flat rate, Actuarially fair, or
+   Affordability-capped.
+2. **Adjust the levers** (sliders): loading factor, deductible, co-insurance
+   (and flat rate, for the flat strategy).
+3. Read the **Portfolio scorecard** (right): the 0–100 composite and its three
+   parts — **Coverage** (premiums cover expected loss), **Affordability**
+   (premiums under the rate-on-line cap), **Profitability** (combined ratio
+   under 100% = underwriting profit). Watch the tension: covering every risk and
+   staying affordable pull against each other.
+4. **Click any building** for its full breakdown — insured value, EAL (pure
+   premium), PML at 100/500-yr, premium charged, deductible, rate on line, loss
+   and combined ratio, and whether it covers EAL / stays affordable.
+5. Green ring = the premium covers that building's EAL; red = under-priced.
+
+## 5. Sandbox  ◇  (free exploration, no clock)
 
 1. Pick a **flood scenario** (top-right).
 2. Toggle **mitigations** (left panel) and watch the 3D campus and the CAT
@@ -82,7 +98,7 @@ Two tabs at the top-right: **Guided dilemmas** and **Free compare**.
 
 ---
 
-## 5. The one idea to take away
+## 6. The one idea to take away
 
 > **Risk = Hazard × Exposure × Vulnerability**
 
