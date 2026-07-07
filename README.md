@@ -43,8 +43,11 @@ when you change exposure and vulnerability — not the hazard.*
   deductible, co-insurance, **PML** at return periods, and the **loss / expense /
   combined ratio** — under three strategies (flat, actuarially fair,
   affordability-capped). A Coverage / Affordability / Profitability triad scores
-  the book 0–100. This ports the math and vocabulary of the FYRE Week-4 insurance
-  tool (`insurance_pricing_tool.py`) to the flood context. Engine:
+  the book 0–100. Data unlocks in the reference tool's **4 progressive levels**
+  (Inventory → Hazard → Vulnerability/EAL → Affordability): you price blind at
+  Level 1 and unlock more data, strategies and score components as you advance.
+  This ports the math and vocabulary of the FYRE Week-4 insurance tool
+  (`insurance_pricing_tool.py`) to the flood context. Engine:
   `src/game/insurance.ts`, UI: `src/Insurance.tsx`.
 
 - **◇ Sandbox** — no clock. Switch roles, toggle mitigations across four flood

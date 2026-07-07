@@ -59,7 +59,23 @@ export function computePML(assetId: string, returnPeriod: number): number {
 
 // ---- FINANCIAL: premium components (ported formulas) -------------------------
 
+// Progressive data-reveal levels (ported from the reference tool's game flow).
+export interface LevelInfo {
+  level: number
+  title: string
+  unlocks: string
+}
+export const INSURANCE_LEVELS: LevelInfo[] = [
+  { level: 1, title: 'Inventory', unlocks: 'Building inventory only — insured value, use and occupants. Price blind.' },
+  { level: 2, title: 'Hazard', unlocks: 'Flood exposure + PML at the 100- and 500-yr return periods per building.' },
+  { level: 3, title: 'Vulnerability', unlocks: 'Expected Annual Loss (fragility) — now you can price actuarially fair.' },
+  { level: 4, title: 'Affordability', unlocks: 'Affordability caps — balance covering the risk against what buyers can pay.' },
+]
+
 export type Strategy = 'flat' | 'fair' | 'capped'
+
+// The data level a strategy needs before it can be used.
+export const STRATEGY_MIN_LEVEL: Record<Strategy, number> = { flat: 1, fair: 3, capped: 4 }
 
 export interface Levers {
   strategy: Strategy

@@ -71,8 +71,21 @@ Two tabs at the top-right: **Guided dilemmas** and **Free compare**.
 
 ## 4. Insurance Desk  $  (price the risk like an actuary)
 
-1. **Pick a pricing strategy** (left): Flat rate, Actuarially fair, or
-   Affordability-capped.
+The data unlocks in **4 levels** — you start pricing blind and earn more
+information as you go (this is the intended classroom flow):
+
+- **Level 1 — Inventory:** building value, use, occupants only. Only the *Flat
+  rate* strategy is available.
+- **Level 2 — Hazard:** flood exposure + PML at 100/500-yr per building.
+- **Level 3 — Vulnerability:** Expected Annual Loss (EAL) — now *Actuarially
+  fair* pricing and the Coverage/Profitability scores unlock.
+- **Level 4 — Affordability:** affordability caps — *Affordability-capped*
+  pricing and the Affordability score unlock; the full composite is scored.
+
+Steps:
+
+1. Click **Unlock Level N →** (left) to reveal more data, then **pick a pricing
+   strategy** (locked ones show the level they need).
 2. **Adjust the levers** (sliders): loading factor, deductible, co-insurance
    (and flat rate, for the flat strategy).
 3. Read the **Portfolio scorecard** (right): the 0–100 composite and its three
