@@ -29,8 +29,9 @@ when you change exposure and vulnerability — not the hazard.*
 - **⚖ Decision Lab (Plan A vs Plan B)** — teach the concepts by comparison.
   *Guided dilemmas* pose a choice (e.g. "lower the water vs. protect the
   substation"), ask the student to **predict**, then reveal both outcomes
-  side-by-side with a plain-language "what happens" and the concept behind the
-  difference. *Free compare* lets students build their own two plans and see a
+  side-by-side with the gains and trade-offs of each. The model offers a
+  context-specific recommendation rather than marking one choice right or wrong.
+  *Free compare* lets students build their own two plans and see a
   side-by-side scoreboard (damage, buildings dark, people, downtime, spend, cost
   of risk) with an auto-generated recommendation and insight. Engine:
   `src/game/compare.ts`, UI: `src/Compare.tsx`.
@@ -40,12 +41,13 @@ when you change exposure and vulnerability — not the hazard.*
 - **$ Insurance Desk** — price the flood risk like an actuary. Computes each
   building's **Expected Annual Loss** (integrated over the flood loss-exceedance
   curve), then the full premium anatomy — pure / gross premium, loading,
-  deductible, co-insurance, **PML** at return periods, and the **loss / expense /
-  combined ratio** — under three strategies (flat, actuarially fair,
-  affordability-capped). A Coverage / Affordability / Profitability triad scores
-  the book 0–100. Data unlocks in the reference tool's **4 progressive levels**
-  (Inventory → Hazard → Vulnerability/EAL → Affordability): you price blind at
-  Level 1 and unlock more data, strategies and score components as you advance.
+  insured value, deductible, reinsurance, **PML** at return periods, and the
+  **loss / expense / combined ratio** — under four strategies (flat,
+  hazard-scaled, actuarially fair, affordability-capped). A Coverage /
+  Affordability / Profitability triad scores the book 0–100. Data unlocks in
+  **5 progressive levels** (Inventory → Hazard → Vulnerability/EAL →
+  Affordability → Financial model). Level 5 opens the black box and traces a
+  100-year event across the owner, primary insurer, and reinsurer.
   This ports the math and vocabulary of the FYRE Week-4 insurance tool
   (`insurance_pricing_tool.py`) to the flood context. Engine:
   `src/game/insurance.ts`, UI: `src/Insurance.tsx`.
@@ -53,7 +55,9 @@ when you change exposure and vulnerability — not the hazard.*
 - **◇ Sandbox** — no clock. Switch roles, toggle mitigations across four flood
   scenarios, scan assets, and compare before/after loss at your own pace. The
   Risk / Insurance Analyst role now surfaces portfolio EAL, the actuarially-fair
-  premium and the combined ratio.
+  premium and the combined ratio. A built-in walkthrough explains the workflow;
+  the controls can be dragged or collapsed, and a live summary explains what each
+  set of choices changed.
 
 ## Features
 

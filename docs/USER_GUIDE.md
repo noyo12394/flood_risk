@@ -54,9 +54,11 @@ Two tabs at the top-right: **Guided dilemmas** and **Free compare**.
 1. Read the situation. Two plans are offered (Plan A and Plan B).
 2. Click a plan chip to **view that plan's flooded campus in 3D**; click the
    other chip to flip between them.
-3. **Make your prediction:** click the plan you think is more resilient.
-4. The result is revealed side-by-side — what happens under each plan, plus the
-   concept it teaches.
+3. **Commit to a trade-off:** click the plan you would choose for the stated
+   objective.
+4. Both outcomes are revealed side-by-side. The model gives a recommendation
+   for that objective and explains what each plan gains and gives up; it does
+   not mark your choice right or wrong.
 5. Click **Next dilemma** to continue, or **Retry**.
 
 ### Free compare (build your own)
@@ -71,42 +73,50 @@ Two tabs at the top-right: **Guided dilemmas** and **Free compare**.
 
 ## 4. Insurance Desk  $  (price the risk like an actuary)
 
-The data unlocks in **4 levels** — you start pricing blind and earn more
+The data unlocks in **5 levels** — you start pricing blind and earn more
 information as you go (this is the intended classroom flow):
 
 - **Level 1 — Inventory:** building value, use, occupants only. Only the *Flat
   rate* strategy is available.
-- **Level 2 — Hazard:** flood exposure + PML at 100/500-yr per building.
+- **Level 2 — Hazard:** flood exposure + PML at 100/500-yr per building, plus
+  the *Hazard-scaled* strategy.
 - **Level 3 — Vulnerability:** Expected Annual Loss (EAL) — now *Actuarially
   fair* pricing and the Coverage/Profitability scores unlock.
 - **Level 4 — Affordability:** affordability caps — *Affordability-capped*
   pricing and the Affordability score unlock; the full composite is scored.
+- **Level 5 — Financial model:** open the pricing black box. Adjust insured
+  value, deductible, and reinsurance, then trace a 100-year loss across the
+  owner, primary insurer, and reinsurer.
 
 Steps:
 
 1. Click **Unlock Level N →** (left) to reveal more data, then **pick a pricing
    strategy** (locked ones show the level they need).
-2. **Adjust the levers** (sliders): loading factor, deductible, co-insurance
-   (and flat rate, for the flat strategy).
+2. **Adjust the levers** (sliders): loading factor and flat rate at early
+   levels; insured value, deductible, and reinsurance at Level 5.
 3. Read the **Portfolio scorecard** (right): the 0–100 composite and its three
    parts — **Coverage** (premiums cover expected loss), **Affordability**
    (premiums under the rate-on-line cap), **Profitability** (combined ratio
    under 100% = underwriting profit). Watch the tension: covering every risk and
    staying affordable pull against each other.
-4. **Click any building** for its full breakdown — insured value, EAL (pure
-   premium), PML at 100/500-yr, premium charged, deductible, rate on line, loss
-   and combined ratio, and whether it covers EAL / stays affordable.
+4. **Click any building** for its full breakdown — replacement and insured
+   value, gross and policy EAL, PML at 100/500-yr, premium, deductible, rate on
+   line, and combined ratio. At Level 5, the right panel also shows who pays a
+   100-year loss.
 5. Green ring = the premium covers that building's EAL; red = under-priced.
 
 ## 5. Sandbox  ◇  (free exploration, no clock)
 
-1. Pick a **flood scenario** (top-right).
-2. Toggle **mitigations** (left panel) and watch the 3D campus and the CAT
-   dashboard update instantly.
-3. Switch **role** (Emergency Manager, Engineer, Budget Officer, Risk Analyst)
+1. Open **How to use** for the built-in four-step walkthrough.
+2. Pick a **flood scenario** (top-right).
+3. Drag **Move controls** to reposition the panel, or collapse it to clear the
+   visualization.
+4. Toggle **mitigations** and watch both the CAT dashboard and the live **What
+   your choices changed** summary update.
+5. Switch **role** (Emergency Manager, Engineer, Budget Officer, Risk Analyst)
    to change what the dashboard emphasizes.
-4. **Click any building** to scan its details.
-5. Click **Run before / after reflection** to compare your plan against doing
+6. **Click any building** to scan its details.
+7. Click **Run before / after reflection** to compare your plan against doing
    nothing.
 
 ---

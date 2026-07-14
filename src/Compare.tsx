@@ -89,8 +89,7 @@ function Guided({
     reset()
   }
 
-  const correctFocus: Focus = d.correct
-  const predictedRight = prediction === correctFocus
+  const recommendedFocus: Focus = d.recommended
 
   return (
     <>
@@ -117,14 +116,14 @@ function Guided({
         <p className="dil-sit">{d.situation}</p>
 
         <div className="plan-tabs">
-          <PlanChip label={d.planA.label} tag="Plan A" active={focus === 'a'} onClick={() => setFocus('a')} winner={revealed && correctFocus === 'a'} />
-          <PlanChip label={d.planB.label} tag="Plan B" active={focus === 'b'} onClick={() => setFocus('b')} winner={revealed && correctFocus === 'b'} />
+          <PlanChip label={d.planA.label} tag="Plan A" active={focus === 'a'} onClick={() => setFocus('a')} recommended={revealed && recommendedFocus === 'a'} />
+          <PlanChip label={d.planB.label} tag="Plan B" active={focus === 'b'} onClick={() => setFocus('b')} recommended={revealed && recommendedFocus === 'b'} />
         </div>
         <p className="view-hint">Viewing {focus === 'a' ? 'Plan A' : 'Plan B'} in 3D — click the other chip to flip the campus.</p>
 
         {!revealed ? (
           <div className="predict">
-            <span className="predict-q">Your call — which plan is more resilient?</span>
+            <span className="predict-q">Which trade-off would you choose for this objective?</span>
             <div className="predict-btns">
               <button className="predict-btn" onClick={() => { setPrediction('a'); setRevealed(true) }}>
                 Plan A
@@ -136,14 +135,14 @@ function Guided({
           </div>
         ) : (
           <>
-            <div className={`verdict ${predictedRight ? 'pass' : 'fail'}`}>
-              {predictedRight ? '✓ Good call.' : '✗ Not quite.'} The more resilient choice is{' '}
-              <b>{correctFocus === 'a' ? d.planA.label : d.planB.label}</b>.
+            <div className="verdict neutral">
+              You chose <b>{prediction === 'a' ? d.planA.label : d.planB.label}</b>. For the stated objective, the model recommends{' '}
+              <b>{recommendedFocus === 'a' ? d.planA.label : d.planB.label}</b>; the comparison below shows what each plan gains and gives up.
             </div>
 
             <div className="reveal-cols">
-              <RevealCol tag="Plan A" label={d.planA.label} run={runA} highlight={correctFocus === 'a'} />
-              <RevealCol tag="Plan B" label={d.planB.label} run={runB} highlight={correctFocus === 'b'} />
+              <RevealCol tag="Plan A" label={d.planA.label} run={runA} recommended={recommendedFocus === 'a'} />
+              <RevealCol tag="Plan B" label={d.planB.label} run={runB} recommended={recommendedFocus === 'b'} />
             </div>
 
             <p className="insight">{cmp.insight}</p>
@@ -181,27 +180,27 @@ function PlanChip({
   label,
   tag,
   active,
-  winner,
+  recommended,
   onClick,
 }: {
   label: string
   tag: string
   active: boolean
-  winner: boolean
+  recommended: boolean
   onClick: () => void
 }) {
   return (
-    <button className={`plan-chip ${active ? 'on' : ''} ${winner ? 'win' : ''}`} onClick={onClick}>
-      <span className="pc-tag">{tag}{winner ? ' · ✓' : ''}</span>
+    <button className={`plan-chip ${active ? 'on' : ''} ${recommended ? 'recommended' : ''}`} onClick={onClick}>
+      <span className="pc-tag">{tag}{recommended ? ' · model recommendation' : ''}</span>
       <strong>{label}</strong>
     </button>
   )
 }
 
-function RevealCol({ tag, label, run, highlight }: { tag: string; label: string; run: PlanRun; highlight: boolean }) {
+function RevealCol({ tag, label, run, recommended }: { tag: string; label: string; run: PlanRun; recommended: boolean }) {
   return (
-    <div className={`reveal-col ${highlight ? 'win' : ''}`}>
-      <span className="rc-tag">{tag}</span>
+    <div className={`reveal-col ${recommended ? 'recommended' : ''}`}>
+      <span className="rc-tag">{tag}{recommended ? ' · recommended for this objective' : ''}</span>
       <strong>{label}</strong>
       <ul>
         {outcomeBullets(run).map((b, i) => (

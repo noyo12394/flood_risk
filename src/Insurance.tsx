@@ -13,6 +13,7 @@ import {
 
 const STRATEGIES: { id: Strategy; label: string; blurb: string }[] = [
   { id: 'flat', label: 'Flat rate', blurb: 'Charge a fixed % of value — ignores hazard.' },
+  { id: 'hazard', label: 'Hazard-scaled', blurb: 'Scale the base rate using each building’s 100-year PML.' },
   { id: 'fair', label: 'Actuarially fair', blurb: 'EAL × (1 + loading) + expense.' },
   { id: 'capped', label: 'Affordability-capped', blurb: 'Fair premium, capped at the rate-on-line limit.' },
 ]
@@ -29,6 +30,7 @@ export function Insurance({ onExit }: { onExit: () => void }) {
   const hasHazard = level >= 2 // PML / flood exposure
   const hasEAL = level >= 3 // fragility → expected annual loss & fair pricing
   const hasAfford = level >= 4 // affordability caps
+  const hasFinancial = level >= 5 // insured value, deductible and reinsurance
 
   // A calm, dry campus for context (no flood, all powered).
   const dry = useMemo(() => {
@@ -46,10 +48,11 @@ export function Insurance({ onExit }: { onExit: () => void }) {
 
   const set = (patch: Partial<Levers>) => setLv((p) => ({ ...p, ...patch }))
   const selected = result.lines.find((l) => l.asset.id === selectedId) ?? null
+  const allocationLine = selected ?? result.lines[0]
 
   // Composite is built only from the score components the level has unlocked.
   const scoreParts: [number, number][] = []
-  if (hasEAL) scoreParts.push([0.4, result.coverageScore], [0.3, result.profitabilityScore])
+  if (hasEAL) scoreParts.push([0.35, result.coverageScore], [0.35, result.profitabilityScore])
   if (hasAfford) scoreParts.push([0.3, result.affordabilityScore])
   const composite =
     scoreParts.length > 0
@@ -64,7 +67,7 @@ export function Insurance({ onExit }: { onExit: () => void }) {
     if (level >= STRATEGY_MIN_LEVEL[s]) set({ strategy: s })
   }
   function unlockNext() {
-    setLevel((l) => Math.min(4, l + 1))
+    setLevel((l) => Math.min(5, l + 1))
   }
 
   return (
@@ -97,7 +100,7 @@ export function Insurance({ onExit }: { onExit: () => void }) {
       {/* ---- Pricing levers (left) ---- */}
       <aside className="ins-left">
         <section className="panel">
-          <h2>Data level {level} / 4</h2>
+          <h2>Data level {level} / 5</h2>
           <div className="ins-levels">
             {INSURANCE_LEVELS.map((L) => (
               <div key={L.level} className={`ins-level ${L.level === level ? 'on' : ''} ${L.level < level ? 'done' : ''} ${L.level > level ? 'locked' : ''}`}>
@@ -109,12 +112,12 @@ export function Insurance({ onExit }: { onExit: () => void }) {
               </div>
             ))}
           </div>
-          {level < 4 ? (
+          {level < 5 ? (
             <button className="ins-unlock" onClick={unlockNext}>
               Unlock Level {level + 1}: {INSURANCE_LEVELS[level].title} →
             </button>
           ) : (
-            <p className="ins-note" style={{ marginTop: 10 }}>All data unlocked — you can now price and score the full book.</p>
+            <p className="ins-note" style={{ marginTop: 10 }}>The black box is open. Change policy terms and trace who carries the loss.</p>
           )}
         </section>
 
@@ -142,11 +145,18 @@ export function Insurance({ onExit }: { onExit: () => void }) {
         </section>
 
         <section className="panel">
-          <h2>Levers</h2>
-          <Slider label="Loading factor" value={lv.loadingFactor} min={0} max={0.6} step={0.05} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set({ loadingFactor: v })} hint="Expenses + cat reserve + profit above the pure premium." />
-          <Slider label="Deductible" value={lv.deductiblePct} min={0} max={0.1} step={0.01} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set({ deductiblePct: v })} hint="Share of value the policyholder pays first." />
-          <Slider label="Co-insurance" value={lv.coinsurancePct} min={0.5} max={1} step={0.05} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set({ coinsurancePct: v })} hint="Insurer's share of covered loss." />
-          {lv.strategy === 'flat' && (
+          <h2>{hasFinancial ? 'Financial model levers' : 'Pricing inputs'}</h2>
+          <Slider label="Loading factor" value={lv.loadingFactor} min={0} max={0.6} step={0.05} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set({ loadingFactor: v })} hint="Expenses, capital and margin above the pure premium." />
+          {hasFinancial ? (
+            <>
+              <Slider label="Insured value" value={lv.insuredValuePct} min={0.5} max={1} step={0.05} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set({ insuredValuePct: v })} hint="Share of replacement value covered by the policy." />
+              <Slider label="Deductible" value={lv.deductiblePct} min={0} max={0.1} step={0.01} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set({ deductiblePct: v })} hint="The owner pays this share of insured value first." />
+              <Slider label="Reinsurance ceded" value={lv.reinsurancePct} min={0} max={0.7} step={0.1} fmt={(v) => `${Math.round(v * 100)}%`} onChange={(v) => set({ reinsurancePct: v })} hint="Moves claim volatility to a reinsurer, with a treaty cost." />
+            </>
+          ) : (
+            <p className="ins-locked-copy">Insured value, deductible and reinsurance are held inside the actuarial black box until Level 5.</p>
+          )}
+          {(lv.strategy === 'flat' || lv.strategy === 'hazard') && (
             <Slider label="Flat rate" value={lv.flatRatePct} min={0.001} max={0.02} step={0.001} fmt={(v) => `${(v * 100).toFixed(1)}%`} onChange={(v) => set({ flatRatePct: v })} hint="Premium as a flat % of insured value." />
           )}
         </section>
@@ -199,6 +209,25 @@ export function Insurance({ onExit }: { onExit: () => void }) {
               : 'Without loss data you are pricing blind. Unlock hazard, then vulnerability (EAL), to price the risk properly.'}
           </p>
         </section>
+        {hasFinancial && (
+          <section className="panel allocation-panel">
+            <h2>100-year event: who pays?</h2>
+            <p className="allocation-asset">{allocationLine.asset.name}{selected ? '' : ' (highest EAL)'}</p>
+            <AllocationBar label="Owner" value={allocationLine.event100.ownerPays} total={allocationLine.event100.repairCost} color="#f6c945" />
+            <AllocationBar label="Primary insurer" value={allocationLine.event100.insurerPays} total={allocationLine.event100.repairCost} color="#6c9bff" />
+            <AllocationBar label="Reinsurer" value={allocationLine.event100.reinsurerPays} total={allocationLine.event100.repairCost} color="#31c48d" />
+            <div className="ins-rows">
+              <Row k="Repair cost" v={formatUSD(allocationLine.event100.repairCost)} />
+              <Row k="Policy limit" v={formatUSD(allocationLine.comp.insuredValue)} />
+              <Row k="Treaty cost / year" v={formatUSD(allocationLine.comp.reinsuranceCost)} />
+            </div>
+            <p className="ins-note allocation-note">
+              {allocationLine.event100.underinsured
+                ? 'The event loss exceeds the insured value. The owner carries the deductible and the uninsured gap.'
+                : 'The policy limit contains this loss. Raising the deductible still shifts more of it to the owner.'}
+            </p>
+          </section>
+        )}
       </aside>
 
       {/* ---- Per-building breakdown ---- */}
@@ -214,7 +243,7 @@ export function Insurance({ onExit }: { onExit: () => void }) {
           <div className="scan-rows">
             {/* Level 1 — inventory (always) */}
             <Row k="Occupancy" v={occupancyLabel(selected.asset.kind)} />
-            <Row k="Insured value" v={formatUSD(selected.asset.value)} />
+            <Row k="Replacement value" v={formatUSD(selected.asset.value)} />
             <Row k="Occupants served" v={selected.asset.occupants.toLocaleString()} />
             {/* Level 2 — hazard */}
             <div className="scan-div" />
@@ -228,14 +257,18 @@ export function Insurance({ onExit }: { onExit: () => void }) {
             )}
             {/* Level 3 — vulnerability / EAL */}
             {hasEAL ? (
-              <Row k="EAL (pure premium)" v={formatUSD(selected.eal)} />
+              <>
+                <Row k="Gross EAL" v={formatUSD(selected.eal)} />
+                <Row k="Policy EAL" v={formatUSD(selected.comp.policyEal)} />
+              </>
             ) : (
               <Row k="EAL (pure premium)" v="🔒 Level 3" />
             )}
             <div className="scan-div" />
             {/* Pricing (always visible once a premium is set) */}
             <Row k="Premium charged" v={formatUSD(selected.comp.netPremium)} strong />
-            <Row k="Deductible" v={formatUSD(selected.comp.deductibleUsd)} />
+            {hasFinancial && <Row k="Insured value" v={formatUSD(selected.comp.insuredValue)} />}
+            {hasFinancial && <Row k="Deductible" v={formatUSD(selected.comp.deductibleUsd)} />}
             <Row k="Rate on line" v={`${(selected.rateOnLine * 100).toFixed(2)}%`} />
             {hasEAL && <Row k="Combined ratio" v={pct(selected.comp.combinedRatio)} good={selected.coversEal} danger={!selected.coversEal} />}
             <div className="scan-badges">
@@ -250,6 +283,21 @@ export function Insurance({ onExit }: { onExit: () => void }) {
         {hasEAL
           ? 'Green ring = premium covers its EAL · red = under-priced · click a building for its breakdown'
           : `Level ${level}: unlock more data to see loss & price the risk · click a building for what you know so far`}
+      </div>
+    </div>
+  )
+}
+
+function AllocationBar({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
+  const width = total > 0 ? Math.max(0, Math.min(100, (value / total) * 100)) : 0
+  return (
+    <div className="allocation-row">
+      <div className="isb-top">
+        <span>{label}</span>
+        <b>{formatUSD(value)}</b>
+      </div>
+      <div className="isb-track">
+        <div className="isb-fill" style={{ width: `${width}%`, background: color }} />
       </div>
     </div>
   )

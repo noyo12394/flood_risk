@@ -161,7 +161,7 @@ export interface Dilemma {
   situation: string
   planA: DilemmaPlan
   planB: DilemmaPlan
-  correct: 'a' | 'b' // the more resilient choice
+  recommended: 'a' | 'b' // model recommendation for the stated objective
   concept: string
   teaching: string
 }
@@ -174,7 +174,7 @@ export const DILEMMAS: Dilemma[] = [
       'A 100-year (Major) flood is forecast. You can spend on lowering the water reaching campus, or on protecting the power substation. Which plan leaves the campus more resilient?',
     planA: { label: 'Flood barriers + drainage', scenarioId: 'major', mitigations: mit('floodGates', 'improveDrainage') },
     planB: { label: 'Raise substation + drainage', scenarioId: 'major', mitigations: mit('raiseSubstation', 'improveDrainage') },
-    correct: 'b',
+    recommended: 'b',
     concept: 'Cascading failure / system-of-systems',
     teaching:
       "Plan A cuts flood depth and property damage — but the substation still drowns, so the whole campus goes dark and far more people are affected. Plan B accepts more building damage yet keeps the power on for less money, so the campus keeps functioning. Resilience is about keeping the system running, not just minimizing the repair bill.",
@@ -186,7 +186,7 @@ export const DILEMMAS: Dilemma[] = [
       'A 50-year (Moderate) flood is coming. Plan A elevates every building. Plan B protects the substation and improves drainage for less money. Which is smarter?',
     planA: { label: 'Elevate all buildings', scenarioId: 'moderate', mitigations: mit('elevateBuildings') },
     planB: { label: 'Raise substation + drainage', scenarioId: 'moderate', mitigations: mit('raiseSubstation', 'improveDrainage') },
-    correct: 'b',
+    recommended: 'b',
     concept: 'Exposure vs. vulnerability of the right asset',
     teaching:
       'Elevating buildings reduces water damage, but they still lose power when the substation floods — so they go dark anyway. Plan B protects the lifeline for less. Resilience is about the whole system, not just the buildings.',
@@ -198,7 +198,7 @@ export const DILEMMAS: Dilemma[] = [
       'A 500-year (Extreme) flood — the worst case. Plan A saves the money and does nothing. Plan B spends on barriers, drainage and raising the substation. In such an extreme event, is mitigation worth it?',
     planA: { label: 'Do nothing', scenarioId: 'extreme', mitigations: mit() },
     planB: { label: 'Barriers + drainage + raise substation', scenarioId: 'extreme', mitigations: mit('floodGates', 'improveDrainage', 'raiseSubstation') },
-    correct: 'b',
+    recommended: 'b',
     concept: 'Value of mitigation for tail risk',
     teaching:
       'Even a 500-year flood is not all-or-nothing. Plan B still cuts damage, keeps more people safe and buys recovery time — mitigation pays off precisely when the hazard is largest, not just for small events.',

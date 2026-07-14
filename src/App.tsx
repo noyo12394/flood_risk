@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type PointerEvent } from 'react'
 import { Scene } from './three/Scene'
 import { Drill } from './Drill'
 import { Compare } from './Compare'
@@ -28,6 +28,10 @@ export default function App() {
   const [mitigations, setMitigations] = useState<MitigationState>({ ...EMPTY_MITIGATIONS })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showReflection, setShowReflection] = useState(false)
+  const [showSandboxGuide, setShowSandboxGuide] = useState(false)
+  const [controlsCollapsed, setControlsCollapsed] = useState(false)
+  const [controlsPosition, setControlsPosition] = useState<{ x: number; y: number } | null>(null)
+  const dragOffset = useRef({ x: 0, y: 0 })
 
   const scenario = SCENARIOS.find((s) => s.id === scenarioId)!
 
@@ -54,6 +58,32 @@ export default function App() {
     setMitigations((m) => ({ ...m, [id]: !m[id] }))
   }
 
+  function openSandbox() {
+    setMode('sandbox')
+    setShowSandboxGuide(true)
+  }
+
+  function startControlsDrag(e: PointerEvent<HTMLDivElement>) {
+    if (window.innerWidth <= 900) return
+    const panel = e.currentTarget.parentElement
+    if (!panel) return
+    const rect = panel.getBoundingClientRect()
+    dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    const width = rect.width
+    const move = (event: globalThis.PointerEvent) => {
+      setControlsPosition({
+        x: Math.max(8, Math.min(window.innerWidth - width - 8, event.clientX - dragOffset.current.x)),
+        y: Math.max(88, Math.min(window.innerHeight - 62, event.clientY - dragOffset.current.y)),
+      })
+    }
+    const stop = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', stop)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', stop)
+  }
+
   if (mode === 'drill') return <Drill onExit={() => setMode('menu')} />
   if (mode === 'compare') return <Compare onExit={() => setMode('menu')} />
   if (mode === 'insurance') return <Insurance onExit={() => setMode('menu')} />
@@ -74,7 +104,7 @@ export default function App() {
 
       {mode === 'menu' && (
         <IntroScreen
-          onSandbox={() => setMode('sandbox')}
+          onSandbox={openSandbox}
           onDrill={() => setMode('drill')}
           onCompare={() => setMode('compare')}
           onInsurance={() => setMode('insurance')}
@@ -123,7 +153,14 @@ export default function App() {
           </header>
 
           {/* ---- Left: roles + mitigations ---- */}
-          <aside className="hud-left">
+          <aside className={`hud-left movable-controls ${controlsCollapsed ? 'collapsed' : ''}`} style={controlsPosition ? { left: controlsPosition.x, top: controlsPosition.y } : undefined}>
+            <div className="controls-handle" onPointerDown={startControlsDrag} title="Drag to move controls">
+              <span>Move controls</span>
+              <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setControlsCollapsed((v) => !v)} title={controlsCollapsed ? 'Expand controls' : 'Collapse controls'}>
+                {controlsCollapsed ? '+' : '−'}
+              </button>
+            </div>
+            <div className="controls-body">
             <section className="panel">
               <h2>Choose your role</h2>
               <div className="roles">
@@ -168,6 +205,13 @@ export default function App() {
                 })}
               </div>
             </section>
+            <div className="action-impact">
+              <strong>What your choices changed</strong>
+              <span>{mitigationSpend === 0 ? 'No mitigations selected; this is the baseline event.' : `${formatUSD(result.avoidedLoss)} loss avoided for ${formatUSD(mitigationSpend)} invested.`}</span>
+              <span>{result.powerOut ? 'The campus power network still fails.' : baseline.powerOut ? 'Your plan keeps the power network online.' : 'The power network remains online.'}</span>
+              <span>{baseline.peopleAffected - result.peopleAffected > 0 ? `${(baseline.peopleAffected - result.peopleAffected).toLocaleString()} fewer people affected.` : `${result.peopleAffected.toLocaleString()} people remain affected.`}</span>
+            </div>
+            </div>
           </aside>
 
           {/* ---- Right: CAT dashboard ---- */}
@@ -234,7 +278,9 @@ export default function App() {
             </div>
           )}
 
-          <div className="hint">Drag to orbit · scroll to zoom · click an asset to scan it</div>
+          <div className="hint">Drag the scene to orbit · drag “Move controls” to reposition the panel · click an asset to inspect it</div>
+
+          <button className="sandbox-help" onClick={() => setShowSandboxGuide(true)}>How to use</button>
 
           {showReflection && (
             <Reflection
@@ -245,8 +291,28 @@ export default function App() {
               onClose={() => setShowReflection(false)}
             />
           )}
+          {showSandboxGuide && <SandboxGuide onClose={() => setShowSandboxGuide(false)} />}
         </>
       )}
+    </div>
+  )
+}
+
+function SandboxGuide({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="modal-back tutorial-back">
+      <div className="modal sandbox-guide">
+        <span className="guide-kicker">Sandbox walkthrough</span>
+        <h2>Change one thing, then read the system</h2>
+        <div className="guide-steps">
+          <div><b>1</b><span><strong>Choose a flood</strong>Start with Moderate, then compare the same plan under Major or Extreme.</span></div>
+          <div><b>2</b><span><strong>Choose a role</strong>The role changes which outcomes the dashboard emphasizes; it does not change the physics.</span></div>
+          <div><b>3</b><span><strong>Toggle one mitigation</strong>Watch loss, people affected, downtime and the power badges update immediately.</span></div>
+          <div><b>4</b><span><strong>Inspect the consequence</strong>Click a building for its local result, then run the before/after reflection for the portfolio result.</span></div>
+        </div>
+        <p className="takeaway">Try raising the substation during a Major flood. A dry building can still go dark when a shared lifeline fails.</p>
+        <button className="enter" onClick={onClose}>Start exploring</button>
+      </div>
     </div>
   )
 }

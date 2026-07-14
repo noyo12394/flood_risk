@@ -4,7 +4,8 @@
 // Same three-part CAT structure and the same actuarial vocabulary:
 //   HAZARD        -> the flood scenarios and their annual probabilities
 //   VULNERABILITY -> our depth-damage fragility (per building, per scenario)
-//   FINANCIAL     -> Pure / Gross / Net premium, deductible, co-insurance,
+//   FINANCIAL     -> Pure / Gross / Net premium, insured value, deductible,
+//                    reinsurance,
 //                    PML at return periods, loss / expense / combined ratio.
 //
 // The one adaptation: the reference tool is seismic (PGA) with household-income
@@ -67,21 +68,23 @@ export interface LevelInfo {
 }
 export const INSURANCE_LEVELS: LevelInfo[] = [
   { level: 1, title: 'Inventory', unlocks: 'Building inventory only — insured value, use and occupants. Price blind.' },
-  { level: 2, title: 'Hazard', unlocks: 'Flood exposure + PML at the 100- and 500-yr return periods per building.' },
-  { level: 3, title: 'Vulnerability', unlocks: 'Expected Annual Loss (fragility) — now you can price actuarially fair.' },
-  { level: 4, title: 'Affordability', unlocks: 'Affordability caps — balance covering the risk against what buyers can pay.' },
+  { level: 2, title: 'Hazard', unlocks: 'Flood exposure + PML. Compare flat pricing with a hazard-scaled rate.' },
+  { level: 3, title: 'Vulnerability', unlocks: 'Expected Annual Loss (fragility) and the actuarial pricing black box.' },
+  { level: 4, title: 'Affordability', unlocks: 'An equity lens: balance risk coverage against a rate-on-line cap.' },
+  { level: 5, title: 'Financial model', unlocks: 'Open the black box: insured value, deductible and reinsurance.' },
 ]
 
-export type Strategy = 'flat' | 'fair' | 'capped'
+export type Strategy = 'flat' | 'hazard' | 'fair' | 'capped'
 
 // The data level a strategy needs before it can be used.
-export const STRATEGY_MIN_LEVEL: Record<Strategy, number> = { flat: 1, fair: 3, capped: 4 }
+export const STRATEGY_MIN_LEVEL: Record<Strategy, number> = { flat: 1, hazard: 2, fair: 3, capped: 4 }
 
 export interface Levers {
   strategy: Strategy
   loadingFactor: number // fractional load above pure premium (e.g. 0.40)
-  deductiblePct: number // deductible as fraction of insured value (e.g. 0.02)
-  coinsurancePct: number // insurer's share of covered loss (e.g. 0.80)
+  insuredValuePct: number // insured value as fraction of replacement value (e.g. 0.85)
+  deductiblePct: number // deductible as fraction of insured value (e.g. 0.03)
+  reinsurancePct: number // fraction of claims ceded to a reinsurer (e.g. 0.60)
   fixedExpense: number // flat annual policy expense (USD)
   flatRatePct: number // premium as % of value for the flat strategy
   affordCapPct: number // affordability cap: max premium as % of value (rate on line)
@@ -90,17 +93,21 @@ export interface Levers {
 export const DEFAULT_LEVERS: Levers = {
   strategy: 'fair',
   loadingFactor: 0.4,
-  deductiblePct: 0.02,
-  coinsurancePct: 0.8,
+  insuredValuePct: 0.85,
+  deductiblePct: 0.03,
+  reinsurancePct: 0.6,
   fixedExpense: 250,
   flatRatePct: 0.004,
   affordCapPct: 0.009,
 }
 
 export interface PremiumComponents {
-  eal: number // pure premium
+  eal: number // gross EAL before policy terms
+  policyEal: number // expected annual claim after IV and deductible
   loadingAmount: number
+  reinsuranceCost: number
   grossPremium: number
+  insuredValue: number
   deductibleUsd: number
   netInsurerEal: number
   netPremium: number // the premium actually charged
@@ -109,35 +116,59 @@ export interface PremiumComponents {
   combinedRatio: number // < 1.0 → underwriting profit
 }
 
-// Base (gross) premium before deductible / co-insurance, per strategy.
-function grossForStrategy(strategy: Strategy, eal: number, value: number, lv: Levers): number {
-  const fair = eal * (1 + lv.loadingFactor) + lv.fixedExpense
+// Base (gross) premium after policy terms, per strategy.
+function grossForStrategy(strategy: Strategy, policyEal: number, value: number, pml100: number, lv: Levers): number {
+  const reinsuranceCost = policyEal * lv.reinsurancePct * 0.15
+  const fair = policyEal * (1 + lv.loadingFactor) + reinsuranceCost + lv.fixedExpense
   if (strategy === 'flat') return value * lv.flatRatePct
+  if (strategy === 'hazard') {
+    const hazardFactor = Math.max(0.6, Math.min(2.2, 0.6 + 3.2 * (pml100 / value)))
+    return value * lv.flatRatePct * hazardFactor
+  }
   if (strategy === 'capped') return Math.min(fair, value * lv.affordCapPct)
   return fair
 }
 
-export function premiumComponents(eal: number, value: number, lv: Levers): PremiumComponents {
-  const pure = eal
+function policyEAL(assetId: string, value: number, lv: Levers): number {
+  const insuredValue = value * lv.insuredValuePct
+  const deductible = insuredValue * lv.deductiblePct
+  const pts: [number, number][] = [[0.2, 0]]
+  SCENARIOS.forEach((s, i) => {
+    const loss = SCENARIO_LOSS[i][assetId] ?? 0
+    pts.push([s.annualProbability, Math.max(0, Math.min(insuredValue, loss) - deductible)])
+  })
+  let eal = 0
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [l0, L0] = pts[i]
+    const [l1, L1] = pts[i + 1]
+    eal += 0.5 * (L0 + L1) * (l0 - l1)
+  }
+  const [lLast, LLast] = pts[pts.length - 1]
+  return eal + LLast * lLast
+}
+
+export function premiumComponents(assetId: string, eal: number, value: number, pml100: number, lv: Levers): PremiumComponents {
+  const pure = policyEAL(assetId, value, lv)
+  const insuredValue = value * lv.insuredValuePct
   // Premium charged = the strategy's gross price (this is what covers the EAL).
-  const gross = grossForStrategy(lv.strategy, eal, value, lv)
+  const gross = grossForStrategy(lv.strategy, pure, value, pml100, lv)
   const premium = gross
-  // Deductible + co-insurance transfer risk to the policyholder, cutting the
-  // insurer's expected payout (ported approximation) — this is what improves the
-  // loss ratio, not the premium charged.
-  const deductibleSavings = 0.25 * (lv.deductiblePct / 0.02)
-  const netInsurerEal = Math.max(0, pure * (1 - deductibleSavings) * lv.coinsurancePct)
+  const netInsurerEal = pure * (1 - lv.reinsurancePct)
+  const reinsuranceCost = pure * lv.reinsurancePct * 0.15
   // Expense load = loading (operating + cat reserve + profit) + fixed expense.
   // Kept as a positive cost so loss + expense = combined ratio behaves sanely
   // even when a (flat) premium is far below the pure premium.
-  const expenses = pure * lv.loadingFactor + lv.fixedExpense
+  const expenses = pure * lv.loadingFactor + reinsuranceCost + lv.fixedExpense
   const lossRatio = premium > 0 ? netInsurerEal / premium : NaN
   const expenseRatio = premium > 0 ? expenses / premium : NaN
   return {
-    eal: pure,
+    eal,
+    policyEal: pure,
     loadingAmount: pure * lv.loadingFactor,
+    reinsuranceCost,
     grossPremium: gross,
-    deductibleUsd: lv.deductiblePct * value,
+    insuredValue,
+    deductibleUsd: lv.deductiblePct * insuredValue,
     netInsurerEal,
     netPremium: premium,
     lossRatio,
@@ -157,6 +188,31 @@ export interface BuildingLine {
   coversEal: boolean
   affordable: boolean
   rateOnLine: number // net premium / value
+  event100: FinancialBreakdown
+}
+
+export interface FinancialBreakdown {
+  repairCost: number
+  coveredLoss: number
+  ownerPays: number
+  insurerPays: number
+  reinsurerPays: number
+  underinsured: boolean
+}
+
+export function financialBreakdown(repairCost: number, value: number, lv: Levers): FinancialBreakdown {
+  const insuredValue = value * lv.insuredValuePct
+  const deductible = insuredValue * lv.deductiblePct
+  const coveredLoss = Math.min(insuredValue, repairCost)
+  const claim = Math.max(0, coveredLoss - deductible)
+  return {
+    repairCost,
+    coveredLoss,
+    ownerPays: Math.min(deductible, coveredLoss) + Math.max(0, repairCost - insuredValue),
+    insurerPays: claim * (1 - lv.reinsurancePct),
+    reinsurerPays: claim * lv.reinsurancePct,
+    underinsured: repairCost > insuredValue,
+  }
 }
 
 export interface InsuranceResult {
@@ -180,27 +236,29 @@ const clip = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x))
 export function runInsurance(lv: Levers): InsuranceResult {
   const lines: BuildingLine[] = ASSETS.map((asset) => {
     const eal = computeEAL(asset.id)
-    const comp = premiumComponents(eal, asset.value, lv)
+    const pml100 = computePML(asset.id, 100)
+    const comp = premiumComponents(asset.id, eal, asset.value, pml100, lv)
     return {
       asset,
       eal,
-      pml100: computePML(asset.id, 100),
+      pml100,
       pml500: computePML(asset.id, 500),
       comp,
-      coversEal: comp.netPremium >= eal,
+      coversEal: comp.netPremium >= comp.policyEal,
       affordable: comp.netPremium <= lv.affordCapPct * asset.value,
       rateOnLine: comp.netPremium / asset.value,
+      event100: financialBreakdown(pml100, asset.value, lv),
     }
   })
 
-  const totalEal = lines.reduce((s, l) => s + l.eal, 0)
+  const totalEal = lines.reduce((s, l) => s + l.comp.policyEal, 0)
   const totalPremium = lines.reduce((s, l) => s + l.comp.netPremium, 0)
   const totalInsurerEal = lines.reduce((s, l) => s + l.comp.netInsurerEal, 0)
-  const totalExpenses = lines.reduce((s, l) => s + l.comp.loadingAmount + lv.fixedExpense, 0)
+  const totalExpenses = lines.reduce((s, l) => s + l.comp.loadingAmount + l.comp.reinsuranceCost + lv.fixedExpense, 0)
 
   // Coverage: does each premium cover its EAL? (mean, capped at 1)
   const coverageScore =
-    lines.reduce((s, l) => s + clip(l.eal > 0 ? l.comp.netPremium / l.eal : 1), 0) / lines.length
+    lines.reduce((s, l) => s + clip(l.comp.policyEal > 0 ? l.comp.netPremium / l.comp.policyEal : 1), 0) / lines.length
 
   // Affordability: premium at/below the rate-on-line cap (mean).
   const affordabilityScore =
@@ -214,7 +272,7 @@ export function runInsurance(lv: Levers): InsuranceResult {
   const ratio = totalEal > 0 ? totalPremium / totalEal : target
   const profitabilityScore = clip((ratio - 1) / (target - 1))
 
-  const composite = (0.4 * coverageScore + 0.3 * affordabilityScore + 0.3 * profitabilityScore) * 100
+  const composite = (0.35 * coverageScore + 0.3 * affordabilityScore + 0.35 * profitabilityScore) * 100
   const grade =
     composite >= 90 ? 'A' : composite >= 80 ? 'B+' : composite >= 70 ? 'B' : composite >= 60 ? 'C' : composite >= 45 ? 'D' : 'F'
 
