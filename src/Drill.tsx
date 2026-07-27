@@ -1,16 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Scene } from './three/Scene'
-import {
-  MITIGATIONS,
-  SCENARIOS,
-  TOTAL_BUDGET,
-  type MitigationId,
-} from './game/data'
-import { EMPTY_MITIGATIONS, formatUSD, type MitigationState } from './game/model'
+import { SCENARIOS } from './game/data'
+import { EMPTY_MITIGATIONS, formatUSD } from './game/model'
 import {
   DECISIONS,
   DRILL_DURATION,
-  PREP_MITIGATIONS,
+  EMERGENCY_BUDGET,
+  STORM_COST_MULT,
+  decisionCost,
   emptyEffects,
   evaluate,
   riverElevAt,
@@ -26,13 +23,8 @@ type Phase = 'prep' | 'live' | 'debrief'
 export function Drill({ onExit }: { onExit: () => void }) {
   const [phase, setPhase] = useState<Phase>('prep')
   const [scenarioId, setScenarioId] = useState<(typeof SCENARIOS)[number]['id']>('major')
-  const [prep, setPrep] = useState<MitigationState>({ ...EMPTY_MITIGATIONS })
 
   const scenario = SCENARIOS.find((s) => s.id === scenarioId)!
-  const prepSpend = useMemo(
-    () => MITIGATIONS.filter((m) => PREP_MITIGATIONS.includes(m.id) && prep[m.id]).reduce((s, m) => s + m.cost, 0),
-    [prep],
-  )
 
   // Live-phase mutable state.
   const effectsRef = useRef<DrillEffects>(emptyEffects())
@@ -43,6 +35,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
   const [resolved, setResolved] = useState<Record<string, { note: string; expired?: boolean }>>({})
   const [scorecard, setScorecard] = useState<Scorecard | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [spend, setSpend] = useState(0)
 
   const t01 = Math.min(1, clock / DRILL_DURATION)
 
@@ -55,7 +48,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
       const elapsed = (now - start) / 1000
       const tt = Math.min(1, elapsed / DRILL_DURATION)
       const river = riverElevAt(tt, scenario.peakElevation)
-      const snap = evaluate(prep, effectsRef.current, river, maxWaterRef.current)
+      const snap = evaluate(effectsRef.current, river, maxWaterRef.current)
       maxWaterRef.current = snap.maxCampusWater
       snapshotRef.current = snap
       setClock(elapsed)
@@ -67,9 +60,8 @@ export function Drill({ onExit }: { onExit: () => void }) {
         const next = { ...prev }
         for (const d of DECISIONS) {
           if (next[d.id]) continue
-          if (d.onlyIf && !d.onlyIf(prep)) continue
           if (tt > d.deadline) {
-            next[d.id] = { note: `${d.title}: no action taken.`, expired: true }
+            next[d.id] = { note: `${d.title} — no action taken.`, expired: true }
             changed = true
           }
         }
@@ -92,14 +84,14 @@ export function Drill({ onExit }: { onExit: () => void }) {
     maxWaterRef.current = -3
     setResolved({})
     setClock(0)
+    setSpend(0)
     setSnapshot(null)
     setPhase('live')
   }
 
   function finish(final: DrillSnapshot) {
-    const baseline = evaluate(EMPTY_MITIGATIONS, emptyEffects(), scenario.peakElevation, 0)
-    const card = scoreDrill(effectsRef.current, prepSpend, final, baseline)
-    setScorecard(card)
+    const baseline = evaluate(emptyEffects(), scenario.peakElevation, 0)
+    setScorecard(scoreDrill(effectsRef.current, final, baseline))
     setPhase('debrief')
   }
 
@@ -107,25 +99,22 @@ export function Drill({ onExit }: { onExit: () => void }) {
     const decision = DECISIONS.find((d) => d.id === decisionId)!
     const option = decision.options.find((o) => o.id === optionId)!
     const water = snapshotRef.current?.campusWater ?? 0
-    const note = option.apply(effectsRef.current, water)
+    const cost = option.costed ? decisionCost(decision, scenarioId) : 0
+    const note = option.apply(effectsRef.current, water, cost)
+    setSpend(effectsRef.current.spend)
     setResolved((prev) => ({ ...prev, [decisionId]: { note } }))
   }
 
-  function togglePrep(id: MitigationId) {
-    setPrep((m) => ({ ...m, [id]: !m[id] }))
-  }
-
   // What the 3D scene should show right now.
-  const sceneAssets = snapshot?.assets ?? evaluate(prep, emptyEffects(), -1.5, -3).assets
-  const sceneRoads = snapshot?.roads ?? evaluate(prep, emptyEffects(), -1.5, -3).roads
+  const dryBaseline = useMemo(() => evaluate(emptyEffects(), -1.5, -3), [])
+  const sceneAssets = snapshot?.assets ?? dryBaseline.assets
+  const sceneRoads = snapshot?.roads ?? dryBaseline.roads
   const sceneWater = snapshot?.campusWater ?? -1.5
 
-  const activeDecisions = DECISIONS.filter(
-    (d) => t01 >= d.at && t01 <= d.deadline && !resolved[d.id] && (!d.onlyIf || d.onlyIf(prep)),
-  )
+  const activeDecisions = DECISIONS.filter((d) => t01 >= d.at && t01 <= d.deadline && !resolved[d.id])
 
   const selected = snapshot?.assets.find((a) => a.asset.id === selectedId) ?? null
-  const remaining = TOTAL_BUDGET - prepSpend - effectsRef.current.spend
+  const remaining = EMERGENCY_BUDGET - spend
   const clockLabel = formatClock(t01)
 
   return (
@@ -135,9 +124,9 @@ export function Drill({ onExit }: { onExit: () => void }) {
           assets={sceneAssets}
           roads={sceneRoads}
           waterElev={sceneWater}
-          mitigations={prep}
+          mitigations={EMPTY_MITIGATIONS}
           selectedId={selectedId}
-          showAllLabels={phase === 'prep'}
+          showAllLabels={false}
           onSelect={setSelectedId}
         />
       </div>
@@ -149,17 +138,16 @@ export function Drill({ onExit }: { onExit: () => void }) {
             <button className="menu-back" onClick={onExit}>
               ← Menu
             </button>
-            <p className="eyebrow">LIVE DRILL · PRE-EVENT BRIEFING</p>
-            <h2>Prepare the campus</h2>
+            <p className="eyebrow">LIVE DRILL · EMERGENCY OPERATIONS</p>
+            <h2>Short-term response drill</h2>
             <p className="prep-lead">
-              A storm is forecast. Commit your <b>capital mitigations</b> now within a{' '}
-              {formatUSD(TOTAL_BUDGET)} budget. Once the drill starts the clock runs, the river rises,
-              and you'll make emergency calls in real time (barriers, evacuation, sandbagging) before
-              the deadlines.
+              A storm is inbound. This is a <b>short-term emergency</b> — no time to build anything.
+              You have an emergency budget of <b>{formatUSD(EMERGENCY_BUDGET)}</b> and three levers to
+              use as the water rises. <b>Costs scale with the storm</b>, and acting earlier helps more.
             </p>
 
             <div className="prep-scenario">
-              <span>Storm severity</span>
+              <span>Storm severity (cost ×{STORM_COST_MULT[scenarioId].toFixed(1)})</span>
               <div className="chips">
                 {SCENARIOS.map((s) => (
                   <button key={s.id} className={`chip ${s.id === scenarioId ? 'on' : ''}`} onClick={() => setScenarioId(s.id)}>
@@ -170,25 +158,21 @@ export function Drill({ onExit }: { onExit: () => void }) {
             </div>
 
             <div className="prep-mits">
-              {MITIGATIONS.filter((m) => PREP_MITIGATIONS.includes(m.id)).map((m) => {
-                const on = prep[m.id]
-                return (
-                  <button key={m.id} className={`mit ${on ? 'on' : ''}`} onClick={() => togglePrep(m.id)}>
-                    <span className="tick" style={{ borderColor: '#31c48d', background: on ? '#31c48d' : 'transparent' }} />
-                    <span className="mtext">
-                      <strong>{m.short}</strong>
-                      <em>{m.description}</em>
-                    </span>
-                    <span className="mcost">{formatUSD(m.cost)}</span>
-                  </button>
-                )
-              })}
+              {DECISIONS.map((d) => (
+                <div key={d.id} className="mit" style={{ cursor: 'default' }}>
+                  <span className="mtext">
+                    <strong>{d.options[0].label}</strong>
+                    <em>{d.situation}</em>
+                  </span>
+                  <span className="mcost">{formatUSD(decisionCost(d, scenarioId))}</span>
+                </div>
+              ))}
             </div>
 
             <div className="prep-foot">
-              <div className={`budget ${prepSpend > TOTAL_BUDGET ? 'bad' : ''}`}>
-                <span className="lbl">Remaining before live spend</span>
-                <strong>{formatUSD(TOTAL_BUDGET - prepSpend)}</strong>
+              <div className="budget">
+                <span className="lbl">Emergency budget</span>
+                <strong>{formatUSD(EMERGENCY_BUDGET)}</strong>
               </div>
               <button className="enter" onClick={beginDrill}>
                 Start the drill ⏱ →
@@ -221,7 +205,6 @@ export function Drill({ onExit }: { onExit: () => void }) {
               <LiveStat label="People at risk" value={snapshot.peopleAffected.toLocaleString()} />
               <LiveStat label="Power" value={snapshot.powerOut ? 'OUT' : 'ON'} danger={snapshot.powerOut} />
               <LiveStat label="Buildings dark" value={`${snapshot.buildingsDark}`} danger={snapshot.buildingsDark > 0} />
-              <LiveStat label="Routes blocked" value={`${snapshot.routesBlocked}`} danger={snapshot.routesBlocked > 0} />
               <LiveStat label="Budget left" value={formatUSD(remaining)} danger={remaining < 0} />
             </div>
           </div>
@@ -230,6 +213,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
           <div className="decisions">
             {activeDecisions.map((d) => {
               const left = (d.deadline - t01) / (d.deadline - d.at)
+              const cost = decisionCost(d, scenarioId)
               return (
                 <div key={d.id} className="decision">
                   <div className="deadline">
@@ -240,8 +224,9 @@ export function Drill({ onExit }: { onExit: () => void }) {
                     <p>{d.situation}</p>
                     <div className="d-opts">
                       {d.options.map((o) => (
-                        <button key={o.id} className={`d-opt ${o.cost ? 'costed' : ''}`} onClick={() => choose(d.id, o.id)}>
+                        <button key={o.id} className={`d-opt ${o.costed ? 'costed' : ''}`} onClick={() => choose(d.id, o.id)}>
                           {o.label}
+                          {o.costed && <span className="d-cost"> · {formatUSD(cost)}</span>}
                         </button>
                       ))}
                     </div>
@@ -278,7 +263,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
         </>
       )}
 
-      {/* ---------- DEBRIEF ---------- */}
+      {/* ---------- DEBRIEF (grade book) ---------- */}
       {phase === 'debrief' && scorecard && (
         <div className="modal-back">
           <div className="modal scorecard">
@@ -294,22 +279,36 @@ export function Drill({ onExit }: { onExit: () => void }) {
               </div>
             </div>
 
-            <div className="score-lines">
-              {scorecard.lines.map((l) => (
-                <div key={l.label} className={`score-line ${l.ok ? 'ok' : 'bad'}`}>
-                  <span className="sl-ico">{l.ok ? '✓' : '✕'}</span>
-                  <span className="sl-label">{l.label}</span>
-                  <span className="sl-detail">{l.detail}</span>
+            <div className="gradebook">
+              <div className="gb-head">Grade book — how your {scorecard.score}/100 was earned</div>
+              {scorecard.gradebook.map((l) => (
+                <div key={l.label} className="gb-line">
+                  <div className="gb-top">
+                    <span>{l.label}</span>
+                    <b className={l.earned >= l.max * 0.6 ? 'good' : l.earned <= l.max * 0.25 ? 'dng' : ''}>
+                      {l.earned} / {l.max} pts
+                    </b>
+                  </div>
+                  <div className="gb-bar">
+                    <div
+                      className="gb-fill"
+                      style={{
+                        width: `${(l.earned / l.max) * 100}%`,
+                        background: l.earned >= l.max * 0.6 ? '#31c48d' : l.earned <= l.max * 0.25 ? '#ff4d5e' : '#f6c945',
+                      }}
+                    />
+                  </div>
+                  <em className="gb-detail">{l.detail}</em>
                 </div>
               ))}
             </div>
 
             <p className="takeaway">
               {scorecard.grade === 'F'
-                ? 'The flood overwhelmed the campus. Pre-committing elevation/drainage and making the emergency calls earlier changes exposure and vulnerability — not the storm.'
+                ? `The response fell short. Deploy the temporary barriers and move people earlier — before the water passes ~1.8 m — and add pumps to hold the level down. Bigger, permanent fixes belong in the Decision Lab.`
                 : scorecard.lossAvoided > 0
-                  ? `You avoided ${formatUSD(scorecard.lossAvoided)} of the ${formatUSD(scorecard.baselineLoss)} a do-nothing response would have cost — by changing exposure and vulnerability before and during the event.`
-                  : 'Timing matters: decisions taken after the water arrives have little effect. Try deploying barriers and ordering evacuation earlier.'}
+                  ? `You avoided ${formatUSD(scorecard.lossAvoided)} of the ${formatUSD(scorecard.baselineLoss)} a do-nothing response would have cost, and moved ${scorecard.peopleSafe.toLocaleString()} people to safety. Earlier action scores higher still.`
+                  : `Timing matters: actions taken after the water arrives do little. Try barriers and evacuation earlier next run.`}
             </p>
 
             <div className="score-actions">

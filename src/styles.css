@@ -1958,3 +1958,29 @@ canvas {
     max-height: 37vh;
   }
 }
+
+/* ---------------- Live Drill — grade book ---------------- */
+.d-cost { font-weight: 700; opacity: 0.85; }
+
+.gradebook {
+  text-align: left;
+  margin: 4px 0 16px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+}
+.gb-head {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.gb-line { margin-bottom: 11px; }
+.gb-line:last-child { margin-bottom: 0; }
+.gb-top { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
+.gb-top b { font-variant-numeric: tabular-nums; }
+.gb-bar { height: 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); overflow: hidden; margin: 4px 0; }
+.gb-fill { height: 100%; transition: width 0.3s; }
+.gb-detail { display: block; font-style: normal; font-size: 11px; color: var(--muted); line-height: 1.4; }
