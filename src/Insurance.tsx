@@ -4,6 +4,7 @@ import { ASSETS } from './game/data'
 import { EMPTY_MITIGATIONS, computeAssets, computeRoads, formatUSD } from './game/model'
 import {
   DEFAULT_LEVERS,
+  GLOSSARY,
   INSURANCE_LEVELS,
   STRATEGY_MIN_LEVEL,
   runInsurance,
@@ -23,6 +24,7 @@ export function Insurance({ onExit }: { onExit: () => void }) {
   const [lv, setLv] = useState<Levers>({ ...DEFAULT_LEVERS, strategy: 'flat' })
   const [level, setLevel] = useState(1)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [showGlossary, setShowGlossary] = useState(false)
 
   const result = useMemo(() => runInsurance(lv), [lv])
 
@@ -92,10 +94,34 @@ export function Insurance({ onExit }: { onExit: () => void }) {
         <div className="brand">
           <div>
             <h1>Insurance Desk</h1>
-            <p>Price the flood risk — EAL, premiums, and the combined ratio</p>
+            <p>
+              Price the flood risk — EAL, premiums, and the combined ratio ·{' '}
+              <a className="glossary-link" role="button" tabIndex={0} onClick={() => setShowGlossary(true)}>
+                Glossary of terms
+              </a>
+            </p>
           </div>
         </div>
       </div>
+
+      {showGlossary && (
+        <div className="modal-back" onClick={() => setShowGlossary(false)}>
+          <div className="modal glossary-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="glossary-head">
+              <h2>Glossary — the logic behind the numbers</h2>
+              <button className="x" onClick={() => setShowGlossary(false)}>✕</button>
+            </div>
+            <div className="glossary-list">
+              {GLOSSARY.map((g) => (
+                <div key={g.term} className="glossary-item">
+                  <strong>{g.term}</strong>
+                  <span>{g.def}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ---- Pricing levers (left) ---- */}
       <aside className="ins-left">
@@ -251,6 +277,13 @@ export function Insurance({ onExit }: { onExit: () => void }) {
               <>
                 <Row k="PML 100-yr" v={formatUSD(selected.pml100)} />
                 <Row k="PML 500-yr" v={formatUSD(selected.pml500)} />
+                <Row
+                  k="Risk multiplier"
+                  v={`×${selected.riskMultiplier.toFixed(2)}`}
+                  good={selected.riskMultiplier < 0.85}
+                  danger={selected.riskMultiplier > 1.3}
+                  note="vs. portfolio avg"
+                />
               </>
             ) : (
               <Row k="Flood exposure / PML" v="🔒 Level 2" />

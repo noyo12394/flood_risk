@@ -188,6 +188,7 @@ export interface BuildingLine {
   coversEal: boolean
   affordable: boolean
   rateOnLine: number // net premium / value
+  riskMultiplier: number // this building's technical rate ÷ portfolio-average rate
   event100: FinancialBreakdown
 }
 
@@ -234,6 +235,12 @@ export interface InsuranceResult {
 const clip = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x))
 
 export function runInsurance(lv: Levers): InsuranceResult {
+  // Each building's technical rate = its EAL as a fraction of insured value.
+  // The per-building risk multiplier expresses that relative to the portfolio
+  // average, so a value of 2.0 means "twice the average flood risk per dollar".
+  const techRate = (asset: Asset) => computeEAL(asset.id) / Math.max(1, asset.value)
+  const avgRate = ASSETS.reduce((s, a) => s + techRate(a), 0) / ASSETS.length
+
   const lines: BuildingLine[] = ASSETS.map((asset) => {
     const eal = computeEAL(asset.id)
     const pml100 = computePML(asset.id, 100)
@@ -247,6 +254,7 @@ export function runInsurance(lv: Levers): InsuranceResult {
       coversEal: comp.netPremium >= comp.policyEal,
       affordable: comp.netPremium <= lv.affordCapPct * asset.value,
       rateOnLine: comp.netPremium / asset.value,
+      riskMultiplier: avgRate > 0 ? techRate(asset) / avgRate : 1,
       event100: financialBreakdown(pml100, asset.value, lv),
     }
   })
@@ -292,6 +300,33 @@ export function runInsurance(lv: Levers): InsuranceResult {
     nAffordable: lines.filter((l) => l.affordable).length,
   }
 }
+
+// ---- Glossary --------------------------------------------------------------
+// Plain-language definitions so students can see the logic behind every score.
+
+export interface GlossaryTerm {
+  term: string
+  def: string
+}
+
+export const GLOSSARY: GlossaryTerm[] = [
+  { term: 'Expected Annual Loss (EAL)', def: 'The average loss per year, found by integrating loss against how often each flood happens. It is the actuarially "pure" premium — the price with no expenses or profit.' },
+  { term: 'Probable Maximum Loss (PML)', def: 'The loss in a single severe event at a given return period (e.g. the 100- or 500-year flood). Reinsurers use it to size how much cover a portfolio needs.' },
+  { term: 'Insured value', def: 'The share of a building’s replacement cost that the policy actually covers. Below 100% the owner is under-insured and keeps some risk.' },
+  { term: 'Deductible', def: 'The first slice of a loss the policyholder pays before the insurer contributes. A higher deductible lowers claims and the premium.' },
+  { term: 'Loading factor', def: 'The mark-up added above the pure premium to fund operating expenses, a catastrophe reserve, and profit. Typically 30–50%.' },
+  { term: 'Gross / Net premium', def: 'Gross premium is the price before policy terms; the net (charged) premium is what the policyholder pays after those terms are applied.' },
+  { term: 'Reinsurance', def: 'Insurance for the insurer: a share of claims is passed to a reinsurer in exchange for a fee, reducing the primary insurer’s tail risk.' },
+  { term: 'Rate on line', def: 'The premium expressed as a percentage of insured value. A quick way to compare how "expensive" cover is across buildings.' },
+  { term: 'Risk multiplier', def: 'A building’s technical rate (EAL ÷ value) relative to the portfolio average. Above 1.0 means higher flood risk per dollar than a typical asset here.' },
+  { term: 'Loss ratio', def: 'Claims the insurer expects to pay ÷ premium collected. Lower is healthier.' },
+  { term: 'Expense ratio', def: 'Expenses (loading + reinsurance + fixed) ÷ premium collected.' },
+  { term: 'Combined ratio', def: 'Loss ratio + expense ratio. Below 100% means the book makes an underwriting profit; above 100% it loses money before investment income.' },
+  { term: 'Coverage score', def: 'Are premiums high enough to cover each building’s expected loss? Averaged across the portfolio.' },
+  { term: 'Affordability score', def: 'An equity check — do premiums stay within a rate-on-line cap so cover is not priced out of reach? Averaged across the portfolio.' },
+  { term: 'Profitability score', def: 'Does total premium exceed total expected loss by the target margin (1.20×)? A portfolio-level measure.' },
+  { term: 'Composite score', def: 'The overall 0–100 grade: a weighted blend of coverage, affordability and profitability — the three goals a sound book must balance.' },
+]
 
 // Convenience for the Sandbox analyst panel: portfolio EAL + fair combined ratio.
 export function portfolioSummary() {

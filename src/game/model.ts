@@ -27,6 +27,8 @@ export type MitigationState = Record<MitigationId, boolean>
 
 export const EMPTY_MITIGATIONS: MitigationState = {
   floodGates: false,
+  buildLevee: false,
+  roomForRiver: false,
   improveDrainage: false,
   elevateBuildings: false,
   raiseSubstation: false,
@@ -121,7 +123,12 @@ export function campusWaterElevation(riverElev: number, reductionMetres: number)
 }
 
 function hazardReductionFor(m: MitigationState): number {
-  return (m.floodGates ? 0.9 : 0) + (m.improveDrainage ? 0.6 : 0)
+  return (
+    (m.buildLevee ? 1.5 : 0) +
+    (m.floodGates ? 0.9 : 0) +
+    (m.roomForRiver ? 0.7 : 0) +
+    (m.improveDrainage ? 0.6 : 0)
+  )
 }
 
 function effectiveWaterElevation(scenario: FloodScenario, m: MitigationState): number {

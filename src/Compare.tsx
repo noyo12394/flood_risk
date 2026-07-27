@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Scene } from './three/Scene'
+import { useDraggable } from './useDraggable'
 import { MITIGATIONS, SCENARIOS, TOTAL_BUDGET, type MitigationId } from './game/data'
-import { formatUSD, type MitigationState } from './game/model'
+import { EMPTY_MITIGATIONS, formatUSD, type MitigationState } from './game/model'
 import {
   DILEMMAS,
   comparePlans,
@@ -69,6 +70,7 @@ function Guided({
   const [index, setIndex] = useState(0)
   const [prediction, setPrediction] = useState<Focus | null>(null)
   const [revealed, setRevealed] = useState(false)
+  const drag = useDraggable({ x: 24, y: 150 })
 
   const d = DILEMMAS[index]
   const runA = useMemo(() => runPlan({ scenarioId: d.planA.scenarioId, mitigations: d.planA.mitigations }), [d])
@@ -105,7 +107,10 @@ function Guided({
         />
       </div>
 
-      <div className="lab-panel">
+      <div className="lab-panel movable" style={drag.style}>
+        <div className="panel-drag" onPointerDown={drag.onHandleDown} title="Drag to move">
+          ⠿ Move
+        </div>
         <div className="dil-head">
           <span className="dil-count">
             Dilemma {index + 1} / {DILEMMAS.length}
@@ -340,7 +345,7 @@ function PlanEditor({
 }
 
 function emptyMit(): MitigationState {
-  return { floodGates: false, improveDrainage: false, elevateBuildings: false, raiseSubstation: false, elevateRoads: false }
+  return { ...EMPTY_MITIGATIONS }
 }
 function mitSet(...ids: MitigationId[]): MitigationState {
   const m = emptyMit()

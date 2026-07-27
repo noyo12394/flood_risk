@@ -168,6 +168,18 @@ export interface Dilemma {
 
 export const DILEMMAS: Dilemma[] = [
   {
+    id: 'levee-vs-nature',
+    title: 'One big levee, or a layered defence?',
+    situation:
+      'Long-term planning for a 100-year (Major) flood. Plan A builds a single permanent levee. Plan B layers permanent flood gates with a nature-based "room for the river" upstream, for less money. Which is the better long-term bet?',
+    planA: { label: 'Build a levee', scenarioId: 'major', mitigations: mit('buildLevee') },
+    planB: { label: 'Flood gates + room for the river', scenarioId: 'major', mitigations: mit('floodGates', 'roomForRiver') },
+    recommended: 'b',
+    concept: 'Hard defence vs. layered / nature-based planning',
+    teaching:
+      'A single levee is strong but a single point of failure — overtop it and the protection is gone all at once. Plan B reaches similar protection for less by layering a built defence with room for the river, which also spreads the peak upstream and adds ecological co-benefits. Long-term resilience favours diverse, redundant defences over one big wall.',
+  },
+  {
     id: 'depth-vs-lifeline',
     title: 'Lower the water, or protect the lifeline?',
     situation:

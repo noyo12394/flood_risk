@@ -45,6 +45,8 @@ export interface FloodScenario {
 
 export type MitigationId =
   | 'floodGates'
+  | 'buildLevee'
+  | 'roomForRiver'
   | 'improveDrainage'
   | 'elevateBuildings'
   | 'raiseSubstation'
@@ -160,7 +162,9 @@ export const SCENARIOS: FloodScenario[] = [
 ]
 
 export const MITIGATIONS: Mitigation[] = [
-  { id: 'floodGates', label: 'Deployable Flood Barriers', short: 'Flood barriers', cost: 1_400_000, role: 'engineer', description: 'A temporary/permanent barrier line lowers the water reaching campus by ~0.9 m.' },
+  { id: 'buildLevee', label: 'Build a Permanent Levee', short: 'Build a levee', cost: 3_000_000, role: 'engineer', description: 'A permanent earthen levee/floodwall — the biggest long-term line of defence — lowers the water reaching campus by ~1.5 m.' },
+  { id: 'floodGates', label: 'Install Permanent Flood Gates', short: 'Flood gates', cost: 1_400_000, role: 'engineer', description: 'Fixed flood gates at the campus edge lower the water reaching campus by ~0.9 m. (Temporary barriers are a Live-Drill response, not a capital project.)' },
+  { id: 'roomForRiver', label: 'Room for the River (in-situ)', short: 'Room for the river', cost: 1_200_000, role: 'engineer', description: 'Restore floodplain / wetlands upstream so the river spreads out in situ, cutting the peak reaching campus by ~0.7 m.' },
   { id: 'improveDrainage', label: 'Upgrade Storm Drainage', short: 'Drainage', cost: 900_000, role: 'engineer', description: 'Bigger culverts and pumps shave ~0.6 m off local flood depths.' },
   { id: 'elevateBuildings', label: 'Elevate / Wet-Floodproof Buildings', short: 'Elevate buildings', cost: 2_100_000, role: 'engineer', description: 'Raises first-floor thresholds by ~1.2 m across campus buildings.' },
   { id: 'raiseSubstation', label: 'Raise the Power Substation', short: 'Raise substation', cost: 650_000, role: 'engineer', description: 'Puts critical electrical gear on a +1.8 m plinth, protecting the lifeline.' },

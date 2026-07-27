@@ -1984,3 +1984,52 @@ canvas {
 .gb-bar { height: 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); overflow: hidden; margin: 4px 0; }
 .gb-fill { height: 100%; transition: width 0.3s; }
 .gb-detail { display: block; font-style: normal; font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+/* ---------------- Movable panels (Decision Lab / Insurance) ---------------- */
+.lab-panel.movable { touch-action: none; }
+.panel-drag {
+  display: inline-block;
+  margin: -6px 0 8px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: grab;
+  user-select: none;
+}
+.panel-drag:active { cursor: grabbing; }
+
+@media (max-width: 900px) {
+  .lab-panel.movable { left: 50% !important; top: 84px !important; transform: translateX(-50%) !important; }
+  .panel-drag { display: none; }
+}
+
+/* ---------------- Insurance glossary ---------------- */
+.glossary-link {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 600;
+}
+.glossary-link:hover { color: #7aa8ff; }
+
+.glossary-modal {
+  width: min(660px, 94vw);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+.glossary-head { display: flex; justify-content: space-between; align-items: center; }
+.glossary-head h2 { margin: 0; font-size: 18px; }
+.glossary-head .x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; }
+.glossary-list { overflow-y: auto; margin-top: 14px; padding-right: 6px; }
+.glossary-item { padding: 9px 0; border-bottom: 1px solid var(--line); }
+.glossary-item:last-child { border-bottom: none; }
+.glossary-item strong { display: block; font-size: 13px; color: var(--text); margin-bottom: 2px; }
+.glossary-item span { font-size: 12px; color: var(--muted); line-height: 1.5; }
