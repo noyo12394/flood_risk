@@ -6,7 +6,6 @@ import {
   DECISIONS,
   DRILL_DURATION,
   EMERGENCY_BUDGET,
-  STORM_COST_MULT,
   decisionCost,
   emptyEffects,
   evaluate,
@@ -80,6 +79,10 @@ export function Drill({ onExit }: { onExit: () => void }) {
   }, [phase])
 
   function beginDrill() {
+    // The storm's severity is a surprise — revealed as the water rises, like a
+    // real emergency. Pick one at random each run.
+    const pick = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)]
+    setScenarioId(pick.id)
     effectsRef.current = emptyEffects()
     maxWaterRef.current = -3
     setResolved({})
@@ -141,21 +144,11 @@ export function Drill({ onExit }: { onExit: () => void }) {
             <p className="eyebrow">LIVE DRILL · EMERGENCY OPERATIONS</p>
             <h2>Short-term response drill</h2>
             <p className="prep-lead">
-              A storm is inbound. This is a <b>short-term emergency</b> — no time to build anything.
-              You have an emergency budget of <b>{formatUSD(EMERGENCY_BUDGET)}</b> and three levers to
-              use as the water rises. <b>Costs scale with the storm</b>, and acting earlier helps more.
+              A storm is inbound — <b>you won't know how bad until the water rises.</b> This is a{' '}
+              <b>short-term emergency</b>: no time to build anything. You have an emergency budget of{' '}
+              <b>{formatUSD(EMERGENCY_BUDGET)}</b> and three levers to use as it unfolds.{' '}
+              <b>Costs scale with the storm</b>, and acting earlier helps more.
             </p>
-
-            <div className="prep-scenario">
-              <span>Storm severity (cost ×{STORM_COST_MULT[scenarioId].toFixed(1)})</span>
-              <div className="chips">
-                {SCENARIOS.map((s) => (
-                  <button key={s.id} className={`chip ${s.id === scenarioId ? 'on' : ''}`} onClick={() => setScenarioId(s.id)}>
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             <div className="prep-mits">
               {DECISIONS.map((d) => (
@@ -164,7 +157,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
                     <strong>{d.options[0].label}</strong>
                     <em>{d.situation}</em>
                   </span>
-                  <span className="mcost">{formatUSD(decisionCost(d, scenarioId))}</span>
+                  <span className="mcost">from {formatUSD(Math.round(d.costBase * 0.6))}</span>
                 </div>
               ))}
             </div>

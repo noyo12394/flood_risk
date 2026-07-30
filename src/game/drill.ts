@@ -222,9 +222,12 @@ export interface Scorecard {
 }
 
 // Weights (points out of 100) — shown to the student in the grade book.
-const W_LOSS = 35
-const W_PEOPLE = 30
-const W_LIFELINE = 20
+// Weighted toward the things you can always influence (cutting loss and moving
+// people), with lifelines a smaller bonus since a big enough flood will drown
+// the substation no matter what you do in a short-term response.
+const W_LOSS = 40
+const W_PEOPLE = 35
+const W_LIFELINE = 10
 const W_BUDGET = 15
 
 export function scoreDrill(fx: DrillEffects, final: DrillSnapshot, baseline: DrillSnapshot): Scorecard {

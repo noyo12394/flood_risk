@@ -71,7 +71,7 @@ function Guided({
   const [prediction, setPrediction] = useState<Focus | null>(null)
   const [revealed, setRevealed] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
-  const drag = useDraggable({ x: 24, y: 150 })
+  const drag = useDraggable({ x: 20, y: 96 })
 
   const d = DILEMMAS[index]
   const runA = useMemo(() => runPlan({ scenarioId: d.planA.scenarioId, mitigations: d.planA.mitigations }), [d])
