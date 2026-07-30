@@ -2033,3 +2033,49 @@ canvas {
 .glossary-item:last-child { border-bottom: none; }
 .glossary-item strong { display: block; font-size: 13px; color: var(--text); margin-bottom: 2px; }
 .glossary-item span { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* ---------------- Collapsible / toggleable panels ---------------- */
+.panel-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.panel-move {
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: grab;
+  user-select: none;
+}
+.panel-move:active { cursor: grabbing; }
+.panel-toggle {
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.panel-toggle:hover { border-color: var(--accent); }
+
+/* Hide everything except the chrome bar when collapsed. */
+.lab-panel.collapsed,
+.ins-left.collapsed,
+.ins-right.collapsed { width: auto; min-width: 150px; }
+.lab-panel.collapsed > *:not(.panel-chrome),
+.ins-left.collapsed > *:not(.panel-chrome),
+.ins-right.collapsed > *:not(.panel-chrome) { display: none; }
+
+@media (max-width: 900px) {
+  .panel-move { display: none; }
+}

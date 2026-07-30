@@ -70,6 +70,7 @@ function Guided({
   const [index, setIndex] = useState(0)
   const [prediction, setPrediction] = useState<Focus | null>(null)
   const [revealed, setRevealed] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
   const drag = useDraggable({ x: 24, y: 150 })
 
   const d = DILEMMAS[index]
@@ -107,9 +108,12 @@ function Guided({
         />
       </div>
 
-      <div className="lab-panel movable" style={drag.style}>
-        <div className="panel-drag" onPointerDown={drag.onHandleDown} title="Drag to move">
-          ⠿ Move
+      <div className={`lab-panel movable ${collapsed ? 'collapsed' : ''}`} style={drag.style}>
+        <div className="panel-chrome">
+          <span className="panel-move" onPointerDown={drag.onHandleDown} title="Drag to move">⠿ Move</span>
+          <button className="panel-toggle" onClick={() => setCollapsed((c) => !c)}>
+            {collapsed ? '▢ Expand' : '— Hide'}
+          </button>
         </div>
         <div className="dil-head">
           <span className="dil-count">

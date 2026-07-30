@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Scene } from './three/Scene'
+import { useDraggable } from './useDraggable'
 import { ASSETS } from './game/data'
 import { EMPTY_MITIGATIONS, computeAssets, computeRoads, formatUSD } from './game/model'
 import {
@@ -25,6 +26,10 @@ export function Insurance({ onExit }: { onExit: () => void }) {
   const [level, setLevel] = useState(1)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showGlossary, setShowGlossary] = useState(false)
+  const [colLeft, setColLeft] = useState(false)
+  const [colRight, setColRight] = useState(false)
+  const dragLeft = useDraggable()
+  const dragRight = useDraggable()
 
   const result = useMemo(() => runInsurance(lv), [lv])
 
@@ -124,7 +129,11 @@ export function Insurance({ onExit }: { onExit: () => void }) {
       )}
 
       {/* ---- Pricing levers (left) ---- */}
-      <aside className="ins-left">
+      <aside className={`ins-left ${colLeft ? 'collapsed' : ''}`} style={dragLeft.style}>
+        <div className="panel-chrome">
+          <span className="panel-move" onPointerDown={dragLeft.onHandleDown} title="Drag to move">⠿ Controls</span>
+          <button className="panel-toggle" onClick={() => setColLeft((c) => !c)}>{colLeft ? '▢ Expand' : '— Hide'}</button>
+        </div>
         <section className="panel">
           <h2>Data level {level} / 5</h2>
           <div className="ins-levels">
@@ -189,7 +198,11 @@ export function Insurance({ onExit }: { onExit: () => void }) {
       </aside>
 
       {/* ---- Portfolio scorecard (right) ---- */}
-      <aside className="ins-right">
+      <aside className={`ins-right ${colRight ? 'collapsed' : ''}`} style={dragRight.style}>
+        <div className="panel-chrome">
+          <span className="panel-move" onPointerDown={dragRight.onHandleDown} title="Drag to move">⠿ Scorecard</span>
+          <button className="panel-toggle" onClick={() => setColRight((c) => !c)}>{colRight ? '▢ Expand' : '— Hide'}</button>
+        </div>
         <section className="panel">
           <h2>Portfolio scorecard</h2>
           <div className="ins-hero">
