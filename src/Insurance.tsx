@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Scene } from './three/Scene'
 import { useDraggable } from './useDraggable'
 import { ASSETS } from './game/data'
@@ -26,6 +26,7 @@ export function Insurance({ onExit }: { onExit: () => void }) {
   const [level, setLevel] = useState(1)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showGlossary, setShowGlossary] = useState(false)
+  const [showGuide, setShowGuide] = useState(true)
   const [colLeft, setColLeft] = useState(false)
   const [colRight, setColRight] = useState(false)
   const dragLeft = useDraggable()
@@ -101,13 +102,19 @@ export function Insurance({ onExit }: { onExit: () => void }) {
             <h1>Insurance Desk</h1>
             <p>
               Price the flood risk — EAL, premiums, and the combined ratio ·{' '}
+              <a className="glossary-link" role="button" tabIndex={0} onClick={() => setShowGuide(true)}>
+                Guide
+              </a>{' '}
+              ·{' '}
               <a className="glossary-link" role="button" tabIndex={0} onClick={() => setShowGlossary(true)}>
-                Glossary of terms
+                Glossary
               </a>
             </p>
           </div>
         </div>
       </div>
+
+      {showGuide && <InsuranceGuide onStart={() => setShowGuide(false)} onGlossary={() => { setShowGuide(false); setShowGlossary(true) }} />}
 
       {showGlossary && (
         <div className="modal-back" onClick={() => setShowGlossary(false)}>
@@ -329,6 +336,137 @@ export function Insurance({ onExit }: { onExit: () => void }) {
         {hasEAL
           ? 'Green ring = premium covers its EAL · red = under-priced · click a building for its breakdown'
           : `Level ${level}: unlock more data to see loss & price the risk · click a building for what you know so far`}
+      </div>
+    </div>
+  )
+}
+
+interface GuideStep {
+  title: string
+  body: ReactNode
+  example?: ReactNode
+}
+
+const GUIDE_STEPS: GuideStep[] = [
+  {
+    title: 'You run the flood insurance desk',
+    body: (
+      <>
+        A campus needs flood insurance and <b>you are the insurer</b>. Your job is to set a fair yearly
+        price — a <b>premium</b> — for each building. Price it too low and one flood wipes you out;
+        too high and no one can afford cover. This desk teaches you to find the balance, step by step.
+      </>
+    ),
+  },
+  {
+    title: 'Step 1 — Expected Annual Loss (the fair base price)',
+    body: (
+      <>
+        Floods are rare but expensive. The <b>Expected Annual Loss (EAL)</b> spreads that cost over
+        time — the <i>average</i> loss per year. It is the honest starting price, before any expenses
+        or profit.
+      </>
+    ),
+    example: (
+      <>
+        A building worth <b>$2M</b>. About <b>once every 100 years</b> a flood does <b>$600K</b> of
+        damage. Spread over 100 years that is <b>$6,000 per year</b>. So <b>EAL ≈ $6,000</b>.
+      </>
+    ),
+  },
+  {
+    title: 'Step 2 — From EAL to the premium',
+    body: (
+      <>
+        You can’t just charge the EAL — you have running costs, need a reserve for bad years, and a
+        margin. Add a <b>loading</b> (about 40%) on top of the pure EAL.
+      </>
+    ),
+    example: (
+      <>
+        <b>$6,000</b> EAL × <b>1.40</b> ≈ <b>$8,400</b> premium. The extra $2,400 covers expenses,
+        catastrophe reserve and profit.
+      </>
+    ),
+  },
+  {
+    title: 'Step 3 — Deductible &amp; insured value share the risk',
+    body: (
+      <>
+        The owner usually pays the first slice of any loss (the <b>deductible</b>) and may insure only
+        part of the building’s value. Both lower the claims you pay — and the price.
+      </>
+    ),
+    example: (
+      <>
+        A <b>3% deductible</b> on a <b>$2M</b> policy means the owner covers the first <b>$60,000</b>
+        of any flood; you pay the rest, up to the insured value.
+      </>
+    ),
+  },
+  {
+    title: 'Step 4 — Your three goals (the scorecard)',
+    body: (
+      <>
+        A healthy book balances three things, and you’re graded 0–100 on all three:
+        <ul className="ig-goals">
+          <li><b>Coverage</b> — premiums are high enough to cover expected losses.</li>
+          <li><b>Affordability</b> — premiums stay within reach (an equity check).</li>
+          <li><b>Profitability</b> — across all buildings, premiums beat total expected losses.</li>
+        </ul>
+        The trick: pushing one up often pulls another down. That tension is the whole lesson.
+      </>
+    ),
+  },
+  {
+    title: 'How to play',
+    body: (
+      <>
+        Data unlocks in <b>levels</b> — you start blind with just the building list, then unlock
+        Hazard → Vulnerability (EAL) → Affordability → the Financial model. Pick a <b>pricing
+        strategy</b>, adjust the <b>levers</b>, and <b>click any building</b> to see its numbers.
+        Stuck on a word? Open the <b>Glossary</b> any time. Panels can be dragged or hidden with their
+        ⠿ / Hide controls.
+      </>
+    ),
+  },
+]
+
+function InsuranceGuide({ onStart, onGlossary }: { onStart: () => void; onGlossary: () => void }) {
+  const [i, setI] = useState(0)
+  const s = GUIDE_STEPS[i]
+  const last = i === GUIDE_STEPS.length - 1
+  return (
+    <div className="modal-back">
+      <div className="modal ins-guide">
+        <div className="ig-top">
+          <span className="ig-kicker">INSURANCE 101 · {i + 1} / {GUIDE_STEPS.length}</span>
+          <button className="ig-skip" onClick={onStart}>Skip to the desk →</button>
+        </div>
+        <h2>{s.title}</h2>
+        <div className="ig-body">{s.body}</div>
+        {s.example && (
+          <div className="ig-example">
+            <span className="ig-ex-tag">Example</span>
+            <span>{s.example}</span>
+          </div>
+        )}
+        <div className="ig-dots">
+          {GUIDE_STEPS.map((_, k) => (
+            <span key={k} className={`ig-dot ${k === i ? 'on' : ''}`} onClick={() => setI(k)} />
+          ))}
+        </div>
+        <div className="ig-nav">
+          <button className="enter alt" disabled={i === 0} onClick={() => setI((v) => Math.max(0, v - 1))}>
+            ← Back
+          </button>
+          {last ? (
+            <button className="enter" onClick={onStart}>Start the Insurance Desk →</button>
+          ) : (
+            <button className="enter" onClick={() => setI((v) => v + 1)}>Next →</button>
+          )}
+        </div>
+        <button className="ig-glossary" onClick={onGlossary}>Open the full glossary of terms</button>
       </div>
     </div>
   )

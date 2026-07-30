@@ -2079,3 +2079,54 @@ canvas {
 @media (max-width: 900px) {
   .panel-move { display: none; }
 }
+
+/* ---------------- Insurance guide (Insurance 101) ---------------- */
+.ins-guide { width: min(600px, 94vw); text-align: left; }
+.ig-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.ig-kicker { font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em; color: var(--accent); }
+.ig-skip { background: none; border: none; color: var(--muted); font-size: 11.5px; cursor: pointer; }
+.ig-skip:hover { color: var(--text); }
+.ins-guide h2 { margin: 0 0 12px; font-size: 21px; }
+.ig-body { font-size: 14px; line-height: 1.6; color: #d3ddf2; }
+.ig-body b { color: #fff; }
+.ig-goals { margin: 10px 0 0; padding-left: 18px; }
+.ig-goals li { margin-bottom: 6px; }
+.ig-example {
+  margin: 16px 0 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(49, 196, 141, 0.09);
+  border-left: 3px solid var(--good);
+  font-size: 13px;
+  line-height: 1.55;
+  color: #d7ecdf;
+}
+.ig-ex-tag {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--good);
+  color: #04140c;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ig-dots { display: flex; gap: 7px; justify-content: center; margin: 20px 0 16px; }
+.ig-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.16); cursor: pointer; transition: all 0.15s; }
+.ig-dot.on { background: var(--accent); transform: scale(1.25); }
+.ig-nav { display: flex; gap: 10px; }
+.ig-nav .enter { flex: 1; }
+.ig-nav .enter:disabled { opacity: 0.4; cursor: not-allowed; }
+.ig-glossary {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
