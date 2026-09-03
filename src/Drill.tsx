@@ -30,6 +30,7 @@ interface ActionRecord {
   chosenDay: number
   cost: number
   durationDays: number
+  completesDay: number
   status: ActionStatus
   note: string
 }
@@ -124,8 +125,10 @@ export function Drill({ onExit }: { onExit: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
 
-  function beginDrill() {
-    const pickedScenario = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)]
+  function beginDrill(reuseScenario = false) {
+    const pickedScenario = reuseScenario
+      ? scenarioRef.current
+      : SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)]
     scenarioRef.current = pickedScenario
     setScenarioId(pickedScenario.id)
     effectsRef.current = emptyEffects()
@@ -152,7 +155,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
         : action,
     ))
     const baseline = evaluate(emptyEffects(), scenarioRef.current.peakElevation, scenarioRef.current.peakElevation)
-    setScorecard(scoreDrill(effectsRef.current, finalSnapshot, baseline))
+    setScorecard(scoreDrill(effectsRef.current, finalSnapshot, baseline, scenarioRef.current.id))
     pausedDecisionRef.current = null
     setPausedDecisionId(null)
     setPhase('debrief')
@@ -162,8 +165,10 @@ export function Drill({ onExit }: { onExit: () => void }) {
     const progress = clockRef.current / DRILL_DURATION
     const chosenDay = dayAt(progress)
     const cost = decisionCost(option, scenarioRef.current.id)
+    if (effectsRef.current.spend + cost > EMERGENCY_BUDGET) return
     effectsRef.current.spend += cost
     const actionId = `${decisionId}-${option.id}`
+    const completesDay = chosenDay + option.durationDays
 
     if (option.durationDays > 0) {
       const completesAt = progress + option.durationDays / DRILL_DAYS
@@ -178,6 +183,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
         chosenDay,
         cost,
         durationDays: option.durationDays,
+        completesDay,
         status: 'working',
         note,
       }])
@@ -191,6 +197,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
         chosenDay,
         cost,
         durationDays: 0,
+        completesDay,
         status: 'complete',
         note,
       }])
@@ -209,6 +216,8 @@ export function Drill({ onExit }: { onExit: () => void }) {
   const selected = snapshot?.assets.find((asset) => asset.asset.id === selectedId) ?? null
   const remaining = EMERGENCY_BUDGET - spend
   const clockLabel = formatClock(t01)
+  const currentDay = dayAt(t01)
+  const healthCenter = snapshot?.assets.find((asset) => asset.asset.kind === 'hospital')
 
   const liveBaseline = snapshot
     ? evaluate(
@@ -266,7 +275,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
             </details>
             <div className="prep-foot">
               <div className="budget"><span className="lbl">Response budget</span><strong>{formatUSD(EMERGENCY_BUDGET)}</strong></div>
-              <button className="enter drill-start" onClick={beginDrill}>Start the drill →</button>
+              <button className="enter drill-start" onClick={() => beginDrill(false)}>Start the drill →</button>
             </div>
           </div>
         </div>
@@ -277,7 +286,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
           <div className="drill-top">
             <button className="menu-back sm" onClick={onExit}>✕</button>
             <div className="clock">
-              <span className="clbl">{clockLabel.label}</span>
+              <span className="clbl">{clockLabel.label} · {scenario.label} forecast</span>
               <strong>{clockLabel.time}</strong>
               <div className="clock-bar"><div className="clock-fill" style={{ width: `${t01 * 100}%` }} /></div>
             </div>
@@ -294,12 +303,21 @@ export function Drill({ onExit }: { onExit: () => void }) {
 
           <aside className="drill-impact">
             <h2>Your impact so far</h2>
+            <p className="drill-forecast">{scenario.label} · 1-in-{scenario.returnPeriod}-year flood</p>
             <ImpactRow label="Water reduced" value={`${impact?.water.toFixed(2) ?? '0.00'} m`} />
             <ImpactRow label="Damage prevented" value={formatUSD(impact?.loss ?? 0)} />
             <ImpactRow label="People protected" value={(impact?.people ?? 0).toLocaleString()} />
-            <ImpactRow label="Lifelines" value={snapshot.powerOut ? 'Power is out' : 'Power online'} good={!snapshot.powerOut} />
+            <ImpactRow label="Campus power" value={snapshot.powerOut ? 'Offline' : 'Online'} good={!snapshot.powerOut} />
+            <ImpactRow label="Health center" value={healthCenter?.functional ? 'Online' : 'Offline'} good={healthCenter?.functional} />
             {actions.filter((action) => action.status === 'working').map((action) => (
-              <div className="operation" key={action.id}><span className="op-dot" /><span><b>{action.label}</b><em>{action.durationDays} day job in progress</em></span></div>
+              <div className="operation" key={action.id}>
+                <span className="op-dot" />
+                <span>
+                  <b>{action.label}</b>
+                  <em>Finishes {formatDay(action.completesDay)}</em>
+                  <span className="op-progress"><i style={{ width: `${operationProgress(action, currentDay)}%` }} /></span>
+                </span>
+              </div>
             ))}
           </aside>
 
@@ -309,17 +327,28 @@ export function Drill({ onExit }: { onExit: () => void }) {
                 <div className="decision-paused">Decision time · clock paused</div>
                 <div className="d-body">
                   <span className="decision-day">{clockLabel.time}</span>
+                  <span className="decision-forecast">Forecast: {scenario.label} · mobilization costs reflect storm scale</span>
                   <strong>{currentDecision.title}</strong>
                   <p>{currentDecision.prompt}</p>
                   <details className="d-more"><summary>Read more</summary><p>{currentDecision.readMore}</p></details>
                   <div className="d-opts">
                     {currentDecision.options.map((option) => {
                       const cost = decisionCost(option, scenarioId)
+                      const unaffordable = cost > remaining
                       return (
-                        <button key={option.id} className={`d-opt ${cost ? 'costed' : ''} ${option.futureOnly ? 'future' : ''}`} onClick={() => choose(currentDecision.id, option)}>
+                        <button
+                          key={option.id}
+                          className={`d-opt ${cost ? 'costed' : ''} ${option.futureOnly ? 'future' : ''}`}
+                          disabled={unaffordable}
+                          onClick={() => choose(currentDecision.id, option)}
+                        >
                           <span className="d-opt-title">{option.label}</span>
-                          <span className="d-opt-meta">{cost ? formatUSD(cost) : 'No cost'} · {option.durationDays ? formatDuration(option.durationDays) : 'Immediate'}</span>
-                          <span className="d-opt-detail">{option.detail}</span>
+                          <span className="d-opt-meta">
+                            {cost ? formatUSD(cost) : 'No cost'} · {option.durationDays ? formatDuration(option.durationDays) : 'Immediate'}
+                            {unaffordable ? ` · ${formatUSD(cost - remaining)} over budget` : ''}
+                          </span>
+                          <span className="d-opt-detail"><b>Helps:</b> {option.detail}</span>
+                          <span className="d-opt-tradeoff"><b>Tradeoff:</b> {option.tradeoff}</span>
                         </button>
                       )
                     })}
@@ -380,7 +409,11 @@ export function Drill({ onExit }: { onExit: () => void }) {
                 ? 'Try a different sequence. Fast actions that finish before flood peak protect more people and prevent more damage. Saving every dollar does not create resilience.'
                 : `Your response prevented ${formatUSD(scorecard.lossAvoided)} in damage and protected ${scorecard.peopleSafe.toLocaleString()} people. Re-run it to test whether a different order works better.`}
             </p>
-            <div className="score-actions"><button className="enter alt" onClick={() => setPhase('prep')}>Re-run drill</button><button className="enter" onClick={onExit}>Back to menu</button></div>
+            <div className="score-actions drill-replay-actions">
+              <button className="enter" onClick={() => beginDrill(true)}>Retry same storm</button>
+              <button className="enter alt" onClick={() => beginDrill(false)}>New random storm</button>
+              <button className="enter alt" onClick={onExit}>Back to menu</button>
+            </div>
           </div>
         </div>
       )}
@@ -429,4 +462,9 @@ function formatClock(t01: number): { label: string; time: string } {
 function formatDuration(days: number): string {
   if (days < 1) return `${Math.round(days * 24)} hours`
   return `${days} ${days === 1 ? 'day' : 'days'}`
+}
+
+function operationProgress(action: ActionRecord, currentDay: number): number {
+  if (action.durationDays <= 0) return 100
+  return Math.max(0, Math.min(100, ((currentDay - action.chosenDay) / action.durationDays) * 100))
 }

@@ -1286,7 +1286,7 @@ canvas {
   flex: 1;
 }
 
-/* ---------------- Live Drill v1.1 ---------------- */
+/* ---------------- Live Drill v1.2 ---------------- */
 .drill-app { --drill-cyan: #27d9c2; --drill-yellow: #ffd447; --drill-coral: #ff6b57; }
 
 .fyre-version {
@@ -1369,6 +1369,7 @@ canvas {
 }
 
 .drill-impact h2 { margin: 0 0 9px; color: #dffff9; font-size: 14px; }
+.drill-forecast { margin: -2px 0 8px; color: var(--drill-yellow); font-size: 11px; font-weight: 750; }
 .impact-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed rgba(150, 180, 220, 0.18); font-size: 13px; }
 .impact-row span { color: #a9bbd3; }
 .impact-row b { font-variant-numeric: tabular-nums; }
@@ -1377,6 +1378,9 @@ canvas {
 .operation span:last-child, .operation b, .operation em { display: block; }
 .operation b { font-size: 12px; }
 .operation em { margin-top: 2px; color: #9cb0ca; font-size: 10.5px; font-style: normal; }
+.operation > span:last-child { flex: 1; }
+.op-progress { display: block; height: 4px; margin-top: 6px; overflow: hidden; border-radius: 4px; background: rgba(255, 255, 255, 0.1); }
+.op-progress i { display: block; height: 100%; border-radius: inherit; background: var(--drill-yellow); }
 .op-dot { width: 9px; height: 9px; flex: none; border-radius: 50%; background: var(--drill-yellow); animation: operation-pulse 1.2s ease-in-out infinite; }
 @keyframes operation-pulse { 50% { opacity: 0.35; transform: scale(0.8); } }
 
@@ -1385,19 +1389,25 @@ canvas {
 .decision-paused { padding: 8px 18px; background: var(--drill-yellow); color: #211a00; font-size: 12px; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; }
 .d-body { padding: 20px 22px 22px; }
 .decision-day { display: block; margin-bottom: 5px; color: var(--drill-cyan); font-size: 13px; font-weight: 850; }
+.decision-forecast { display: block; margin-bottom: 7px; color: #9eb1ca; font-size: 11px; font-weight: 700; }
 .d-body > strong { display: block; color: #fff4cf; font-size: 24px; line-height: 1.2; }
 .d-body > p { margin: 8px 0 13px; color: #e0e9f6; font-size: 16px; line-height: 1.5; }
 .d-more { margin-bottom: 14px; }
 
 .d-opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.d-opt { min-width: 0; min-height: 112px; padding: 13px 14px; border-radius: 8px; text-align: left; background: rgba(255, 255, 255, 0.055); }
+.d-opt { min-width: 0; min-height: 138px; padding: 13px 14px; border-radius: 8px; text-align: left; background: rgba(255, 255, 255, 0.055); }
 .d-opt:hover { border-color: var(--drill-cyan); background: rgba(39, 217, 194, 0.12); }
+.d-opt:disabled { cursor: not-allowed; opacity: 0.48; border-color: rgba(255, 107, 87, 0.65); background: rgba(255, 107, 87, 0.06); }
+.d-opt:disabled .d-opt-meta { color: var(--drill-coral); }
 .d-opt.costed { border-color: rgba(255, 212, 71, 0.48); }
 .d-opt.future { border-color: rgba(255, 107, 87, 0.58); }
-.d-opt-title, .d-opt-meta, .d-opt-detail { display: block; }
+.d-opt-title, .d-opt-meta, .d-opt-detail, .d-opt-tradeoff { display: block; }
 .d-opt-title { color: #f5f8ff; font-size: 15px; font-weight: 850; }
 .d-opt-meta { margin-top: 5px; color: var(--drill-yellow); font-size: 12px; font-weight: 750; }
 .d-opt-detail { margin-top: 7px; color: #acbdd3; font-size: 12px; line-height: 1.42; }
+.d-opt-tradeoff { margin-top: 5px; color: #a9b5c7; font-size: 11.5px; line-height: 1.4; }
+.d-opt-detail b { color: #cffff7; }
+.d-opt-tradeoff b { color: #ffdca0; }
 
 .feed { bottom: 12px; max-width: 68vw; border-radius: 7px; font-size: 14px; font-weight: 650; }
 .drill-scorecard { width: min(720px, 94vw); max-height: 92vh; overflow-y: auto; text-align: left; }
@@ -1415,6 +1425,7 @@ canvas {
 .sequence-row em { margin-top: 2px; color: #9fb1c9; font-size: 11px; line-height: 1.4; font-style: normal; }
 .sequence-row small { color: #d8e3f2; font-weight: 750; }
 .sequence-row.after-event > b { background: rgba(255, 107, 87, 0.15); color: var(--drill-coral); }
+.drill-replay-actions .enter { min-width: 0; padding-inline: 12px; }
 
 @media (max-width: 900px) {
   .drill-prep { padding: 54px 22px 26px; }
@@ -1437,6 +1448,7 @@ canvas {
   .d-opt { min-height: 0; }
   .feed { display: none; }
   .drill-scorecard { padding: 20px; }
+  .drill-replay-actions { flex-direction: column; }
 }
 
 /* ---------------- Decision Lab ---------------- */

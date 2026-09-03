@@ -10,7 +10,7 @@ import {
   type RoadResult,
 } from './model'
 
-export const FYRE_VERSION = '1.1'
+export const FYRE_VERSION = '1.2'
 export const DRILL_DURATION = 150
 export const DRILL_DAYS = 7 // Day -5 through Day +2
 export const EMERGENCY_BUDGET = 3_000_000
@@ -39,11 +39,12 @@ export interface DrillEffects {
   reductionMetres: number
   extraRaise: ExtraRaise
   evacFraction: number
+  healthBackup: boolean
   spend: number
 }
 
 export function emptyEffects(): DrillEffects {
-  return { reductionMetres: 0, extraRaise: {}, evacFraction: 0, spend: 0 }
+  return { reductionMetres: 0, extraRaise: {}, evacFraction: 0, healthBackup: false, spend: 0 }
 }
 
 export interface DecisionOption {
@@ -51,6 +52,7 @@ export interface DecisionOption {
   label: string
   shortLabel: string
   detail: string
+  tradeoff: string
   costBase?: number
   durationDays: number
   futureOnly?: boolean
@@ -81,6 +83,7 @@ export const DECISIONS: Decision[] = [
       {
         id: 'basic', label: 'Basic campus barrier', shortLabel: 'Basic barrier',
         detail: 'Cuts campus water about 0.45 m. Faster and cheaper, but easier to overtop.',
+        tradeoff: 'Protects the whole campus less than the reinforced line.',
         costBase: 450_000, durationDays: 1.25,
         apply: (fx, water) => {
           if (water >= 1.8) return 'The basic line finished after overtopping. It did not reduce this flood.'
@@ -91,6 +94,7 @@ export const DECISIONS: Decision[] = [
       {
         id: 'reinforced', label: 'Reinforced campus barrier', shortLabel: 'Reinforced barrier',
         detail: 'Cuts campus water about 0.9 m. Stronger protection, with more cost and setup time.',
+        tradeoff: 'This is the largest barrier commitment and needs two full days.',
         costBase: 800_000, durationDays: 2,
         apply: (fx, water) => {
           if (water >= 1.8) return 'The reinforced line finished too late and was overtopped. No flood reduction.'
@@ -101,6 +105,7 @@ export const DECISIONS: Decision[] = [
       {
         id: 'targeted', label: 'Protect critical buildings', shortLabel: 'Targeted barriers',
         detail: 'Adds temporary protection at the power substation and health center, not the whole campus.',
+        tradeoff: 'Other buildings and roads receive no direct protection.',
         costBase: 380_000, durationDays: 0.75,
         apply: (fx, water) => {
           if (water >= 2.4) return 'Crews arrived after deep flooding began. The building barriers could not be sealed.'
@@ -112,6 +117,7 @@ export const DECISIONS: Decision[] = [
       {
         id: 'hold', label: 'Save the crews and budget', shortLabel: 'No barriers',
         detail: 'Keeps the budget available, but leaves flood depth and building thresholds unchanged.',
+        tradeoff: 'The campus absorbs the full flood unless later actions compensate.',
         durationDays: 0, apply: () => 'No temporary barriers were installed.',
       },
     ],
@@ -127,6 +133,7 @@ export const DECISIONS: Decision[] = [
       {
         id: 'move', label: 'Start phased evacuation', shortLabel: 'Evacuate people',
         detail: 'Moves people over 1.5 days. Effectiveness depends on the water level when transport finishes.',
+        tradeoff: 'Requires transport funding and does not prevent physical damage.',
         costBase: 600_000, durationDays: 1.5,
         apply: (fx, water) => {
           const fraction = clamp(1 - water / 4, 0.15, 0.95)
@@ -137,6 +144,7 @@ export const DECISIONS: Decision[] = [
       {
         id: 'shelter', label: 'Shelter in place', shortLabel: 'Shelter in place',
         detail: 'No transport cost. People remain in buildings and depend on power and safe access.',
+        tradeoff: 'Occupants remain exposed if power, access, or buildings fail.',
         durationDays: 0, apply: () => 'Shelter-in-place guidance was issued. No one was moved off campus.',
       },
     ],
@@ -152,6 +160,7 @@ export const DECISIONS: Decision[] = [
       {
         id: 'pump', label: 'Deploy high-capacity pumps', shortLabel: 'Deploy pumps',
         detail: 'Operational in half a day. Draws water down about 0.5 m, or 0.3 m in deep flooding.',
+        tradeoff: 'Capacity falls in deep water and the pumps do not stop the river.',
         costBase: 500_000, durationDays: 0.5,
         apply: (fx, water) => {
           const effect = water < 3.5 ? 0.5 : 0.3
@@ -162,6 +171,7 @@ export const DECISIONS: Decision[] = [
       {
         id: 'none', label: 'Do not deploy pumps', shortLabel: 'No pumps',
         detail: 'Preserves budget and crews. Water follows the unmitigated flood curve.',
+        tradeoff: 'Local ponding and drainage overload continue unchecked.',
         durationDays: 0, apply: () => 'No pumps were deployed.',
       },
     ],
@@ -177,6 +187,7 @@ export const DECISIONS: Decision[] = [
       {
         id: 'sandbag', label: 'Sandbag the substation', shortLabel: 'Protect power now',
         detail: 'One-day emergency setup adds about 0.7 m of temporary flood protection.',
+        tradeoff: 'It may finish too late and does not protect the health center directly.',
         costBase: 260_000, durationDays: 1,
         apply: (fx, water) => {
           if (water >= 2.2) return 'Deep water reached the substation before sandbagging finished. The lifeline remains exposed.'
@@ -185,8 +196,19 @@ export const DECISIONS: Decision[] = [
         },
       },
       {
+        id: 'generator', label: 'Power the health center with generators', shortLabel: 'Health backup power',
+        detail: 'Mobile generators and fuel are ready in 12 hours, keeping health services online if the grid fails.',
+        tradeoff: 'Protects health services, but does not restore campus-wide power or prevent flood damage.',
+        costBase: 320_000, durationDays: 0.5,
+        apply: (fx) => {
+          fx.healthBackup = true
+          return 'Health-center generators are online with a protected fuel supply.'
+        },
+      },
+      {
         id: 'plinth', label: 'Start a permanent raised plinth', shortLabel: 'Permanent plinth',
         detail: 'A strong long-term fix, but it takes about 90 days and will not help this flood.',
+        tradeoff: 'Consumes response funds now while providing no benefit during this event.',
         costBase: 650_000, durationDays: 90, futureOnly: true,
         apply: (fx) => {
           fx.extraRaise[SUBSTATION_ID] = (fx.extraRaise[SUBSTATION_ID] ?? 0) + 1.8
@@ -196,6 +218,7 @@ export const DECISIONS: Decision[] = [
       {
         id: 'leave', label: 'Leave the substation unprotected', shortLabel: 'No lifeline action',
         detail: 'No immediate cost, but a flooded substation can darken otherwise dry buildings.',
+        tradeoff: 'Both power and dependent health services may be lost.',
         durationDays: 0, apply: () => 'The substation was left unprotected.',
       },
     ],
@@ -223,11 +246,29 @@ export interface DrillSnapshot {
 export function evaluate(fx: DrillEffects, riverElev: number, maxCampusWaterPrev: number): DrillSnapshot {
   const campusWater = campusWaterElevation(riverElev, fx.reductionMetres)
   const maxCampusWater = Math.max(maxCampusWaterPrev, campusWater)
-  const assets = computeAssets(EMPTY_MITIGATIONS, maxCampusWater, fx.extraRaise)
+  const modelAssets = computeAssets(EMPTY_MITIGATIONS, maxCampusWater, fx.extraRaise)
+  const assets = fx.healthBackup
+    ? modelAssets.map((result) => {
+        if (result.asset.kind !== 'hospital' || result.damage >= 0.6) return result
+        const damageImpact = Math.min(1, result.damage * 1.4)
+        return {
+          ...result,
+          powered: true,
+          functional: true,
+          dryButDark: false,
+          powerReason: 'ok' as const,
+          peopleAffected: Math.round(result.asset.occupants * damageImpact),
+        }
+      })
+    : modelAssets
   const roads = computeRoads(EMPTY_MITIGATIONS, campusWater)
   const totalLoss = assets.reduce((sum, result) => sum + result.loss, 0)
   const peopleAffected = assets.reduce(
-    (sum, result) => sum + Math.round(result.peopleAffected * (1 - fx.evacFraction)),
+    (sum, result) => sum + (
+      result.asset.kind === 'substation'
+        ? result.peopleAffected
+        : Math.round(result.peopleAffected * (1 - fx.evacFraction))
+    ),
     0,
   )
   const substation = assets.find((asset) => asset.asset.kind === 'substation')
@@ -272,7 +313,14 @@ const W_PEOPLE = 30
 const W_LIFELINE = 20
 const W_BUDGET = 15
 
-export function scoreDrill(fx: DrillEffects, final: DrillSnapshot, baseline: DrillSnapshot): Scorecard {
+const RESPONSE_TARGETS: Record<string, { loss: number; people: number; lifeline: number }> = {
+  minor: { loss: 1, people: 1, lifeline: 1 },
+  moderate: { loss: 0.95, people: 0.95, lifeline: 1 },
+  major: { loss: 0.5, people: 0.26, lifeline: 0.5 },
+  extreme: { loss: 0.35, people: 0.2, lifeline: 0.5 },
+}
+
+export function scoreDrill(fx: DrillEffects, final: DrillSnapshot, baseline: DrillSnapshot, scenarioId = 'major'): Scorecard {
   const baselineLoss = baseline.totalLoss
   const lossAvoided = Math.max(0, baselineLoss - final.totalLoss)
   const lossRatio = baselineLoss > 0 ? clamp(lossAvoided / baselineLoss, 0, 1) : 1
@@ -283,14 +331,18 @@ export function scoreDrill(fx: DrillEffects, final: DrillSnapshot, baseline: Dri
   const hospital = final.assets.find((asset) => asset.asset.kind === 'hospital')!
   const lifeCount = Number(substation.functional) + Number(hospital.functional)
   const lifelineScore = lifeCount / 2
+  const target = RESPONSE_TARGETS[scenarioId] ?? RESPONSE_TARGETS.major
+  const lossPerformance = clamp(lossRatio / target.loss, 0, 1)
+  const peoplePerformance = clamp(peopleRatio / target.people, 0, 1)
+  const lifelinePerformance = clamp(lifelineScore / target.lifeline, 0, 1)
   const overBudget = Math.max(0, fx.spend - EMERGENCY_BUDGET)
   const withinBudget = overBudget === 0 ? 1 : clamp(1 - overBudget / EMERGENCY_BUDGET, 0, 1)
-  const responseEffectiveness = 0.5 * lossRatio + 0.35 * peopleRatio + 0.15 * lifelineScore
+  const responseEffectiveness = 0.5 * lossPerformance + 0.35 * peoplePerformance + 0.15 * lifelinePerformance
   const budgetScore = fx.spend > 0 ? withinBudget * responseEffectiveness : 0
 
-  const earnedLoss = Math.round(W_LOSS * lossRatio)
-  const earnedPeople = Math.round(W_PEOPLE * peopleRatio)
-  const earnedLife = Math.round(W_LIFELINE * lifelineScore)
+  const earnedLoss = Math.round(W_LOSS * lossPerformance)
+  const earnedPeople = Math.round(W_PEOPLE * peoplePerformance)
+  const earnedLife = Math.round(W_LIFELINE * lifelinePerformance)
   const earnedBudget = Math.round(W_BUDGET * budgetScore)
   const score = earnedLoss + earnedPeople + earnedLife + earnedBudget
   const grade = score >= 90 ? 'A' : score >= 80 ? 'B+' : score >= 70 ? 'B' : score >= 60 ? 'C' : score >= 45 ? 'D' : 'F'
@@ -309,15 +361,15 @@ export function scoreDrill(fx: DrillEffects, final: DrillSnapshot, baseline: Dri
     gradebook: [
       {
         label: 'Damage prevented', earned: earnedLoss, max: W_LOSS,
-        detail: `${fmt(lossAvoided)} of ${fmt(baselineLoss)} prevented → ${Math.round(lossRatio * 100)}% × ${W_LOSS} pts`,
+        detail: `${fmt(lossAvoided)} prevented → ${Math.round(lossPerformance * 100)}% of the ${scenarioId} response target`,
       },
       {
         label: 'People protected', earned: earnedPeople, max: W_PEOPLE,
-        detail: `${peopleSafe.toLocaleString()} of ${peopleAtRisk.toLocaleString()} protected → ${Math.round(peopleRatio * 100)}% × ${W_PEOPLE} pts`,
+        detail: `${peopleSafe.toLocaleString()} protected → ${Math.round(peoplePerformance * 100)}% of the ${scenarioId} response target`,
       },
       {
         label: 'Lifelines online', earned: earnedLife, max: W_LIFELINE,
-        detail: `${lifeCount}/2 online (power and health center) → ${Math.round(lifelineScore * 100)}% × ${W_LIFELINE} pts`,
+        detail: `${lifeCount}/2 online (power and health center) → ${Math.round(lifelinePerformance * 100)}% of target`,
       },
       {
         label: 'Smart budget use', earned: earnedBudget, max: W_BUDGET,

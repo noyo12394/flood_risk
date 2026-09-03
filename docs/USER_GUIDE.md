@@ -32,7 +32,8 @@ A timed emergency. You begin at Day -5 and respond as a surprise storm develops.
 2. Click **Start the drill**. The clock begins at Day -5 and the storm severity
    is revealed through the rising water.
 3. **Answer each decision card.** The clock pauses while you choose. Expand
-   **Read more**, then compare each option's cost, completion time, and effect.
+   **Read more**, then compare each option's benefit, tradeoff, cost, and
+   completion time. Options that exceed the remaining budget are clearly locked.
 4. Watch the impact panel and 3D campus. Temporary barriers, evacuation, pumps,
    and lifeline protection take time to finish. A permanent raised plinth takes
    too long to help this flood, demonstrating the difference between response
@@ -40,9 +41,11 @@ A timed emergency. You begin at Day -5 and respond as a surprise storm develops.
 5. Track the top bar: day, water level, damage, people at risk, power, and budget.
 6. When the event ends you get a **resilience score (0–100) and letter grade**,
    with a breakdown of loss avoided, people protected, lifelines, and budget.
-   Keeping an unused budget earns no points when outcomes are poor.
-7. Review your action sequence, then click **Re-run drill** to test a different
-   strategy or **Back to menu**.
+   Scores use storm-specific emergency-response targets, so a strong response to
+   an extreme event is rewarded even when all damage cannot be prevented. Keeping
+   an unused budget earns no points when outcomes are poor.
+7. Review your action sequence, then use **Retry same storm** for a fair strategy
+   comparison, **New random storm** for another challenge, or **Back to menu**.
 
 **Goal:** highest score = lowest loss, most people protected, power kept on,
 within budget.

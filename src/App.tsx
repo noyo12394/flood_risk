@@ -4,6 +4,7 @@ import { Drill } from './Drill'
 import { Compare } from './Compare'
 import { Insurance } from './Insurance'
 import { portfolioSummary } from './game/insurance'
+import { FYRE_VERSION } from './game/drill'
 import {
   ASSETS,
   MITIGATIONS,
@@ -466,7 +467,7 @@ function IntroScreen({
           </button>
         </div>
 
-        <p className="foot">FYRE v1.1 · Educational model with simplified fragility &amp; cost data</p>
+        <p className="foot">FYRE v{FYRE_VERSION} · Educational model with simplified fragility &amp; cost data</p>
       </div>
     </div>
   )

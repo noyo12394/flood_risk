@@ -21,7 +21,9 @@ when you change exposure and vulnerability — not the hazard.*
 
 - **⏱ Live Drill (real-time decision-maker)** — begin at Day -5 with a surprise
   storm and make emergency calls while the river rises. The clock pauses for each
-  choice, and every option explains its cost, setup time, and likely effect.
+  choice, and every option explains its benefit, tradeoff, cost, setup time, and
+  likely effect. Unaffordable choices lock, and students can replay the same
+  storm to compare strategies fairly.
   Actions such as targeted barriers, evacuation, pumps, and lifeline protection
   may take hours or days to finish; long-term construction can be started, but
   will not protect the campus during this event. Ends with a **0–100 resilience
