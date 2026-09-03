@@ -432,8 +432,8 @@ function IntroScreen({
             <span className="mc-tag">⏱ REAL-TIME</span>
             <strong>Live Drill</strong>
             <span className="mc-desc">
-              A clock runs and the flood rises in real time. Pre-commit capital mitigations, then make
-              timed emergency decisions before the deadlines — and get a resilience score.
+              Start at Day -5, pause to make each response choice, and watch actions finish as the
+              flood approaches. Protect people and lifelines, then see your resilience score.
             </span>
             <span className="mc-go">Start the drill →</span>
           </button>
