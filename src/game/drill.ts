@@ -11,7 +11,7 @@ import {
 } from './model'
 
 export const FYRE_VERSION = '1.2'
-export const DRILL_DURATION = 150
+export const DRILL_DURATION = 100
 export const DRILL_DAYS = 7 // Day -5 through Day +2
 export const EMERGENCY_BUDGET = 3_000_000
 
