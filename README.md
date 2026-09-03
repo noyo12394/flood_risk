@@ -19,11 +19,13 @@ when you change exposure and vulnerability — not the hazard.*
 
 ## Modes
 
-- **⏱ Live Drill (real-time decision-maker)** — pre-commit capital mitigations
-  within budget, then a clock runs and the river rises in real time. Timed
-  decision cards demand emergency calls (deploy barriers, order evacuation,
-  sandbag the substation, close roads) *before the deadlines* — act too late and
-  the benefit is lost. Ends with a **0–100 resilience score and letter grade**
+- **⏱ Live Drill (real-time decision-maker)** — begin at Day -5 with a surprise
+  storm and make emergency calls while the river rises. The clock pauses for each
+  choice, and every option explains its cost, setup time, and likely effect.
+  Actions such as targeted barriers, evacuation, pumps, and lifeline protection
+  may take hours or days to finish; long-term construction can be started, but
+  will not protect the campus during this event. Ends with a **0–100 resilience
+  score and letter grade**
   broken down by loss avoided, people protected, lifelines kept online and
   budget discipline. Engine: `src/game/drill.ts`, UI: `src/Drill.tsx`.
 - **⚖ Decision Lab (Plan A vs Plan B)** — teach the concepts by comparison.

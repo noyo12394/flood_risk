@@ -1,156 +1,212 @@
-// Live-drill engine: a timed SHORT-TERM emergency-operations scenario.
-//
-// The drill is now purely short-term response — no capital projects (those live
-// in the Decision Lab / long-term planning). During the event you have three
-// emergency levers, each with a cost that scales with the storm:
-//   1) Install TEMPORARY flood barriers   — lower the water reaching campus
-//   2) Move the people (evacuate)          — operational cost, protects people
-//   3) Deploy pumps to drain the water     — draw the water level down
-// Acting late reduces or nullifies the benefit. The debrief shows a transparent
-// grade book so every point is explained.
-//
-// The engine here is pure/stateless helpers; Drill.tsx runs the clock.
+// Live-drill engine: a timed short-term emergency response scenario.
 
-import { EMPTY_MITIGATIONS, campusWaterElevation, computeAssets, computeRoads, type AssetResult, type RoadResult } from './model'
+import {
+  EMPTY_MITIGATIONS,
+  campusWaterElevation,
+  computeAssets,
+  computeRoads,
+  type AssetResult,
+  type ExtraRaise,
+  type RoadResult,
+} from './model'
 
-export const DRILL_DURATION = 108 // seconds of real time for the whole event
-
-// Emergency-operations budget (separate from capital planning).
+export const FYRE_VERSION = '1.1'
+export const DRILL_DURATION = 150
+export const DRILL_DAYS = 7 // Day -5 through Day +2
 export const EMERGENCY_BUDGET = 3_000_000
 
-// Costs scale with the storm — a bigger event needs more barriers, more buses,
-// more pumps. Multiplier applied to each action's base cost.
 export const STORM_COST_MULT: Record<string, number> = {
   minor: 0.6,
-  moderate: 1.0,
+  moderate: 1,
   major: 1.5,
-  extreme: 2.0,
+  extreme: 2,
 }
 
+const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x))
 const smoothstep = (x: number) => {
-  const t = Math.max(0, Math.min(1, x))
+  const t = clamp(x, 0, 1)
   return t * t * (3 - 2 * t)
 }
-const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x))
 
-// River water-surface elevation as a function of normalised drill time (0..1).
-// Rises to the scenario peak at ~80% of the drill, then recedes.
 export function riverElevAt(t01: number, peak: number): number {
   const start = -1.5
   const peakAt = 0.8
   if (t01 <= peakAt) return start + (peak - start) * smoothstep(t01 / peakAt)
-  const recede = (t01 - peakAt) / (1 - peakAt)
-  return peak - 1.3 * smoothstep(recede)
+  return peak - 1.3 * smoothstep((t01 - peakAt) / (1 - peakAt))
 }
 
-// Benefits earned through timely short-term decisions.
 export interface DrillEffects {
-  reductionMetres: number // water reduction from barriers + pumps
-  evacFraction: number // 0..1 of people moved out in time
-  spend: number // emergency spend
+  reductionMetres: number
+  extraRaise: ExtraRaise
+  evacFraction: number
+  spend: number
 }
 
 export function emptyEffects(): DrillEffects {
-  return { reductionMetres: 0, evacFraction: 0, spend: 0 }
+  return { reductionMetres: 0, extraRaise: {}, evacFraction: 0, spend: 0 }
 }
 
 export interface DecisionOption {
   id: string
   label: string
-  costed?: boolean // this option costs money (scaled by storm)
-  apply: (fx: DrillEffects, campusWater: number, cost: number) => string
+  shortLabel: string
+  detail: string
+  costBase?: number
+  durationDays: number
+  futureOnly?: boolean
+  apply: (fx: DrillEffects, campusWater: number) => string
 }
 
 export interface Decision {
   id: string
-  at: number // normalised time the card appears
-  deadline: number // normalised time it auto-expires
+  at: number
   title: string
-  situation: string
-  costBase: number // base cost before the storm multiplier
+  prompt: string
+  readMore: string
   options: DecisionOption[]
 }
+
+const SUBSTATION_ID = 'substation'
+const HOSPITAL_ID = 'hospital'
 
 export const DECISIONS: Decision[] = [
   {
     id: 'barriers',
-    at: 0.05,
-    deadline: 0.46,
-    title: 'Deploy temporary flood barriers?',
-    situation:
-      'Portable barriers (Tiger Dams / HESCO) can lower the water reaching campus by ~0.9 m — but only if they are up before the water overtops them (~1.8 m).',
-    costBase: 800_000,
+    at: 0.04,
+    title: 'Where should the barrier crews go?',
+    prompt: 'The river is rising. Choose the size and location of your temporary barrier response.',
+    readMore:
+      'Portable water-filled barriers and HESCO units need trucks, crews and setup time. A stronger campus-wide line blocks more water, while targeted barriers protect only the two critical facilities.',
     options: [
       {
-        id: 'deploy',
-        label: 'Install temporary barriers',
-        costed: true,
-        apply: (fx, w, cost) => {
-          fx.spend += cost
-          if (w < 1.8) {
-            fx.reductionMetres += 0.9
-            return 'Temporary barriers up in time — campus water cut by ~0.9 m.'
-          }
-          return 'Too late — the water already overtopped the barrier line. No effect.'
+        id: 'basic', label: 'Basic campus barrier', shortLabel: 'Basic barrier',
+        detail: 'Cuts campus water about 0.45 m. Faster and cheaper, but easier to overtop.',
+        costBase: 450_000, durationDays: 1.25,
+        apply: (fx, water) => {
+          if (water >= 1.8) return 'The basic line finished after overtopping. It did not reduce this flood.'
+          fx.reductionMetres += 0.45
+          return 'Basic barriers are holding. Campus water is about 0.45 m lower.'
         },
       },
-      { id: 'hold', label: 'Hold', apply: () => 'No barriers deployed.' },
+      {
+        id: 'reinforced', label: 'Reinforced campus barrier', shortLabel: 'Reinforced barrier',
+        detail: 'Cuts campus water about 0.9 m. Stronger protection, with more cost and setup time.',
+        costBase: 800_000, durationDays: 2,
+        apply: (fx, water) => {
+          if (water >= 1.8) return 'The reinforced line finished too late and was overtopped. No flood reduction.'
+          fx.reductionMetres += 0.9
+          return 'Reinforced barriers are holding. Campus water is about 0.9 m lower.'
+        },
+      },
+      {
+        id: 'targeted', label: 'Protect critical buildings', shortLabel: 'Targeted barriers',
+        detail: 'Adds temporary protection at the power substation and health center, not the whole campus.',
+        costBase: 380_000, durationDays: 0.75,
+        apply: (fx, water) => {
+          if (water >= 2.4) return 'Crews arrived after deep flooding began. The building barriers could not be sealed.'
+          fx.extraRaise[SUBSTATION_ID] = (fx.extraRaise[SUBSTATION_ID] ?? 0) + 0.9
+          fx.extraRaise[HOSPITAL_ID] = (fx.extraRaise[HOSPITAL_ID] ?? 0) + 0.9
+          return 'Critical-building barriers are sealed. The substation and health center gain 0.9 m of protection.'
+        },
+      },
+      {
+        id: 'hold', label: 'Save the crews and budget', shortLabel: 'No barriers',
+        detail: 'Keeps the budget available, but leaves flood depth and building thresholds unchanged.',
+        durationDays: 0, apply: () => 'No temporary barriers were installed.',
+      },
     ],
   },
   {
     id: 'evacuate',
-    at: 0.12,
-    deadline: 0.62,
-    title: 'Move the people out?',
-    situation:
-      'Ordering evacuation and running the buses costs money and rises with the storm — but the earlier you move people, the more get clear before routes are cut.',
-    costBase: 600_000,
+    at: 0.2,
+    title: 'How will you protect people?',
+    prompt: 'Low-lying buildings may lose road access. Pick a people-protection plan.',
+    readMore:
+      'Evacuation takes buses, drivers, accessible transport and time. Starting earlier moves more people before roads close. Sheltering costs less but leaves occupants exposed to outages and building damage.',
     options: [
       {
-        id: 'move',
-        label: 'Move the people (evacuate)',
-        costed: true,
-        apply: (fx, w, cost) => {
-          fx.spend += cost
-          const frac = clamp(1 - w / 4, 0.15, 0.95)
-          fx.evacFraction = Math.max(fx.evacFraction, frac)
-          return `Evacuation underway — ~${Math.round(frac * 100)}% of people moved out before routes were cut.`
+        id: 'move', label: 'Start phased evacuation', shortLabel: 'Evacuate people',
+        detail: 'Moves people over 1.5 days. Effectiveness depends on the water level when transport finishes.',
+        costBase: 600_000, durationDays: 1.5,
+        apply: (fx, water) => {
+          const fraction = clamp(1 - water / 4, 0.15, 0.95)
+          fx.evacFraction = Math.max(fx.evacFraction, fraction)
+          return `Evacuation finished. About ${Math.round(fraction * 100)}% of people were moved before routes closed.`
         },
       },
-      { id: 'stay', label: 'Shelter in place', apply: () => 'No evacuation ordered.' },
+      {
+        id: 'shelter', label: 'Shelter in place', shortLabel: 'Shelter in place',
+        detail: 'No transport cost. People remain in buildings and depend on power and safe access.',
+        durationDays: 0, apply: () => 'Shelter-in-place guidance was issued. No one was moved off campus.',
+      },
     ],
   },
   {
     id: 'pumps',
-    at: 0.2,
-    deadline: 0.72,
-    title: 'Deploy pumps to drain the water?',
-    situation:
-      'High-capacity pumps draw the water level down. They keep up in a moderate flood but get overwhelmed in an extreme one — and earlier is better.',
-    costBase: 500_000,
+    at: 0.38,
+    title: 'Water is pooling behind the defenses',
+    prompt: 'Pumps can remove local water, but their capacity is limited in a severe flood.',
+    readMore:
+      'High-capacity mobile pumps are useful when drainage is overwhelmed. They reduce local water after setup, but cannot stop the river itself and lose effectiveness as flood depth increases.',
     options: [
       {
-        id: 'pump',
-        label: 'Deploy pumps',
-        costed: true,
-        apply: (fx, w, cost) => {
-          fx.spend += cost
-          const eff = w < 3.5 ? 0.5 : 0.3
-          fx.reductionMetres += eff
-          return `Pumps running — water level drawn down ~${eff.toFixed(1)} m.`
+        id: 'pump', label: 'Deploy high-capacity pumps', shortLabel: 'Deploy pumps',
+        detail: 'Operational in half a day. Draws water down about 0.5 m, or 0.3 m in deep flooding.',
+        costBase: 500_000, durationDays: 0.5,
+        apply: (fx, water) => {
+          const effect = water < 3.5 ? 0.5 : 0.3
+          fx.reductionMetres += effect
+          return `Pumps are running. Local water is about ${effect.toFixed(1)} m lower.`
         },
       },
-      { id: 'nopump', label: 'No pumps', apply: () => 'No pumps deployed.' },
+      {
+        id: 'none', label: 'Do not deploy pumps', shortLabel: 'No pumps',
+        detail: 'Preserves budget and crews. Water follows the unmitigated flood curve.',
+        durationDays: 0, apply: () => 'No pumps were deployed.',
+      },
+    ],
+  },
+  {
+    id: 'lifeline',
+    at: 0.55,
+    title: 'The power lifeline is threatened',
+    prompt: 'Choose an emergency measure, or start a permanent project that cannot finish in time.',
+    readMore:
+      'Sandbags can temporarily raise the substation threshold. A permanent raised plinth is more reliable, but normally takes design, permitting and months of construction. Starting it now will not protect this event.',
+    options: [
+      {
+        id: 'sandbag', label: 'Sandbag the substation', shortLabel: 'Protect power now',
+        detail: 'One-day emergency setup adds about 0.7 m of temporary flood protection.',
+        costBase: 260_000, durationDays: 1,
+        apply: (fx, water) => {
+          if (water >= 2.2) return 'Deep water reached the substation before sandbagging finished. The lifeline remains exposed.'
+          fx.extraRaise[SUBSTATION_ID] = (fx.extraRaise[SUBSTATION_ID] ?? 0) + 0.7
+          return 'The substation is sandbagged with 0.7 m of added temporary protection.'
+        },
+      },
+      {
+        id: 'plinth', label: 'Start a permanent raised plinth', shortLabel: 'Permanent plinth',
+        detail: 'A strong long-term fix, but it takes about 90 days and will not help this flood.',
+        costBase: 650_000, durationDays: 90, futureOnly: true,
+        apply: (fx) => {
+          fx.extraRaise[SUBSTATION_ID] = (fx.extraRaise[SUBSTATION_ID] ?? 0) + 1.8
+          return 'The permanent plinth is complete and raises the substation 1.8 m.'
+        },
+      },
+      {
+        id: 'leave', label: 'Leave the substation unprotected', shortLabel: 'No lifeline action',
+        detail: 'No immediate cost, but a flooded substation can darken otherwise dry buildings.',
+        durationDays: 0, apply: () => 'The substation was left unprotected.',
+      },
     ],
   },
 ]
 
-// Storm-scaled cost for a decision.
-export function decisionCost(d: Decision, stormId: string): number {
-  return Math.round(d.costBase * (STORM_COST_MULT[stormId] ?? 1))
+export function decisionCost(option: DecisionOption, stormId: string): number {
+  if (!option.costBase) return 0
+  return Math.round(option.costBase * (STORM_COST_MULT[stormId] ?? 1))
 }
 
-// A single evaluated instant of the drill.
 export interface DrillSnapshot {
   campusWater: number
   maxCampusWater: number
@@ -167,23 +223,15 @@ export interface DrillSnapshot {
 export function evaluate(fx: DrillEffects, riverElev: number, maxCampusWaterPrev: number): DrillSnapshot {
   const campusWater = campusWaterElevation(riverElev, fx.reductionMetres)
   const maxCampusWater = Math.max(maxCampusWaterPrev, campusWater)
-
-  const assets = computeAssets(EMPTY_MITIGATIONS, maxCampusWater)
+  const assets = computeAssets(EMPTY_MITIGATIONS, maxCampusWater, fx.extraRaise)
   const roads = computeRoads(EMPTY_MITIGATIONS, campusWater)
-
-  let totalLoss = 0
-  let peopleAffected = 0
-  for (const r of assets) {
-    totalLoss += r.loss
-    // Moving people out reduces the human impact campus-wide.
-    peopleAffected += Math.round(r.peopleAffected * (1 - fx.evacFraction))
-  }
-  const substation = assets.find((a) => a.asset.kind === 'substation')
+  const totalLoss = assets.reduce((sum, result) => sum + result.loss, 0)
+  const peopleAffected = assets.reduce(
+    (sum, result) => sum + Math.round(result.peopleAffected * (1 - fx.evacFraction)),
+    0,
+  )
+  const substation = assets.find((asset) => asset.asset.kind === 'substation')
   const powerOut = !!substation && !substation.functional
-  const buildingsDark = assets.filter((a) => a.asset.kind !== 'substation' && !a.powered).length
-  const dryButDark = assets.filter((a) => a.dryButDark).length
-  const routesBlocked = roads.filter((r) => !r.passable).length
-
   return {
     campusWater,
     maxCampusWater,
@@ -192,23 +240,21 @@ export function evaluate(fx: DrillEffects, riverElev: number, maxCampusWaterPrev
     totalLoss,
     peopleAffected,
     powerOut,
-    buildingsDark,
-    dryButDark,
-    routesBlocked,
+    buildingsDark: assets.filter((asset) => asset.asset.kind !== 'substation' && !asset.powered).length,
+    dryButDark: assets.filter((asset) => asset.dryButDark).length,
+    routesBlocked: roads.filter((road) => !road.passable).length,
   }
 }
 
-// ---- Scoring (transparent grade book) ---------------------------------------
-
 export interface GradeLine {
   label: string
-  earned: number // points earned
-  max: number // points available
-  detail: string // how it was computed
+  earned: number
+  max: number
+  detail: string
 }
 
 export interface Scorecard {
-  score: number // 0..100
+  score: number
   grade: string
   lossAvoided: number
   finalLoss: number
@@ -221,91 +267,70 @@ export interface Scorecard {
   gradebook: GradeLine[]
 }
 
-// Weights (points out of 100) — shown to the student in the grade book.
-// Weighted toward the things you can always influence (cutting loss and moving
-// people), with lifelines a smaller bonus since a big enough flood will drown
-// the substation no matter what you do in a short-term response.
-const W_LOSS = 40
-const W_PEOPLE = 35
-const W_LIFELINE = 10
+const W_LOSS = 35
+const W_PEOPLE = 30
+const W_LIFELINE = 20
 const W_BUDGET = 15
 
 export function scoreDrill(fx: DrillEffects, final: DrillSnapshot, baseline: DrillSnapshot): Scorecard {
-  const finalLoss = final.totalLoss
   const baselineLoss = baseline.totalLoss
-  const lossAvoided = Math.max(0, baselineLoss - finalLoss)
+  const lossAvoided = Math.max(0, baselineLoss - final.totalLoss)
   const lossRatio = baselineLoss > 0 ? clamp(lossAvoided / baselineLoss, 0, 1) : 1
-
   const peopleAtRisk = baseline.peopleAffected
   const peopleSafe = Math.max(0, peopleAtRisk - final.peopleAffected)
   const peopleRatio = peopleAtRisk > 0 ? clamp(peopleSafe / peopleAtRisk, 0, 1) : 1
-
-  const substation = final.assets.find((a) => a.asset.kind === 'substation')!
-  const hospital = final.assets.find((a) => a.asset.kind === 'hospital')!
-  const lifeCount = (substation.functional ? 1 : 0) + (hospital.functional ? 1 : 0)
+  const substation = final.assets.find((asset) => asset.asset.kind === 'substation')!
+  const hospital = final.assets.find((asset) => asset.asset.kind === 'hospital')!
+  const lifeCount = Number(substation.functional) + Number(hospital.functional)
   const lifelineScore = lifeCount / 2
-  const lifelinesOnline = substation.functional && hospital.functional
+  const overBudget = Math.max(0, fx.spend - EMERGENCY_BUDGET)
+  const withinBudget = overBudget === 0 ? 1 : clamp(1 - overBudget / EMERGENCY_BUDGET, 0, 1)
+  const responseEffectiveness = 0.5 * lossRatio + 0.35 * peopleRatio + 0.15 * lifelineScore
+  const budgetScore = fx.spend > 0 ? withinBudget * responseEffectiveness : 0
 
-  const totalSpend = fx.spend
-  const overBudget = Math.max(0, totalSpend - EMERGENCY_BUDGET)
-  const budgetScore = overBudget > 0 ? clamp(1 - overBudget / EMERGENCY_BUDGET, 0, 1) : 1
-
-  const eLoss = Math.round(W_LOSS * lossRatio)
-  const ePeople = Math.round(W_PEOPLE * peopleRatio)
-  const eLife = Math.round(W_LIFELINE * lifelineScore)
-  const eBudget = Math.round(W_BUDGET * budgetScore)
-  const score = eLoss + ePeople + eLife + eBudget
-
-  const grade =
-    score >= 90 ? 'A' : score >= 80 ? 'B+' : score >= 70 ? 'B' : score >= 60 ? 'C' : score >= 45 ? 'D' : 'F'
-
-  const gradebook: GradeLine[] = [
-    {
-      label: 'Loss avoided',
-      earned: eLoss,
-      max: W_LOSS,
-      detail: `${fmt(lossAvoided)} of ${fmt(baselineLoss)} avoided → ${Math.round(lossRatio * 100)}% × ${W_LOSS} pts`,
-    },
-    {
-      label: 'People protected',
-      earned: ePeople,
-      max: W_PEOPLE,
-      detail: `${peopleSafe.toLocaleString()} of ${peopleAtRisk.toLocaleString()} kept safe → ${Math.round(peopleRatio * 100)}% × ${W_PEOPLE} pts`,
-    },
-    {
-      label: 'Lifelines online',
-      earned: eLife,
-      max: W_LIFELINE,
-      detail: `${lifeCount}/2 lifelines up (power, health center) → ${Math.round(lifelineScore * 100)}% × ${W_LIFELINE} pts`,
-    },
-    {
-      label: 'Budget discipline',
-      earned: eBudget,
-      max: W_BUDGET,
-      detail:
-        overBudget > 0
-          ? `over emergency budget by ${fmt(overBudget)} → ${Math.round(budgetScore * 100)}% × ${W_BUDGET} pts`
-          : `within the ${fmt(EMERGENCY_BUDGET)} emergency budget → full ${W_BUDGET} pts`,
-    },
-  ]
+  const earnedLoss = Math.round(W_LOSS * lossRatio)
+  const earnedPeople = Math.round(W_PEOPLE * peopleRatio)
+  const earnedLife = Math.round(W_LIFELINE * lifelineScore)
+  const earnedBudget = Math.round(W_BUDGET * budgetScore)
+  const score = earnedLoss + earnedPeople + earnedLife + earnedBudget
+  const grade = score >= 90 ? 'A' : score >= 80 ? 'B+' : score >= 70 ? 'B' : score >= 60 ? 'C' : score >= 45 ? 'D' : 'F'
 
   return {
     score,
     grade,
     lossAvoided,
-    finalLoss,
+    finalLoss: final.totalLoss,
     baselineLoss,
     peopleSafe,
     peopleAtRisk,
-    lifelinesOnline,
+    lifelinesOnline: substation.functional && hospital.functional,
     overBudget,
-    totalSpend,
-    gradebook,
+    totalSpend: fx.spend,
+    gradebook: [
+      {
+        label: 'Damage prevented', earned: earnedLoss, max: W_LOSS,
+        detail: `${fmt(lossAvoided)} of ${fmt(baselineLoss)} prevented → ${Math.round(lossRatio * 100)}% × ${W_LOSS} pts`,
+      },
+      {
+        label: 'People protected', earned: earnedPeople, max: W_PEOPLE,
+        detail: `${peopleSafe.toLocaleString()} of ${peopleAtRisk.toLocaleString()} protected → ${Math.round(peopleRatio * 100)}% × ${W_PEOPLE} pts`,
+      },
+      {
+        label: 'Lifelines online', earned: earnedLife, max: W_LIFELINE,
+        detail: `${lifeCount}/2 online (power and health center) → ${Math.round(lifelineScore * 100)}% × ${W_LIFELINE} pts`,
+      },
+      {
+        label: 'Smart budget use', earned: earnedBudget, max: W_BUDGET,
+        detail: fx.spend === 0
+          ? 'No response was funded, so unused money does not earn resilience points.'
+          : `${Math.round(responseEffectiveness * 100)}% response effectiveness${overBudget ? `; ${fmt(overBudget)} over budget` : '; within budget'} → ${earnedBudget}/${W_BUDGET} pts`,
+      },
+    ],
   }
 }
 
-function fmt(n: number): string {
-  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
-  if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(0)}K`
-  return `$${Math.round(n)}`
+function fmt(value: number): string {
+  if (Math.abs(value) >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`
+  if (Math.abs(value) >= 1_000) return `$${(value / 1_000).toFixed(0)}K`
+  return `$${Math.round(value)}`
 }

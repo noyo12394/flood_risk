@@ -466,7 +466,7 @@ function IntroScreen({
           </button>
         </div>
 
-        <p className="foot">Educational MVP · simplified fragility &amp; cost data</p>
+        <p className="foot">FYRE v1.1 · Educational model with simplified fragility &amp; cost data</p>
       </div>
     </div>
   )

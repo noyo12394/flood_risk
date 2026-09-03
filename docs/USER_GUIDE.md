@@ -25,21 +25,24 @@ tag over a building means it lost power (DARK = it's dry but still lost power).
 
 ## 2. Live Drill  ⏱  (real-time decisions + score)
 
-A timed emergency. The clock runs, the river rises, you act before deadlines.
+A timed emergency. You begin at Day -5 and respond as a surprise storm develops.
 
-1. **Prep screen:** choose a storm severity (Minor → Extreme) and tick the
-   capital upgrades you want to buy up front (drainage, elevate buildings, raise
-   substation, elevate roads). Stay within the budget shown.
-2. Click **Start the drill**. The clock begins and water starts rising.
-3. **Answer the alert cards** as they pop up (deploy barriers, evacuate, sandbag
-   the substation, close roads, open a shelter). Each card has a shrinking timer
-   bar — **act before it runs out**, or the option is lost. Acting *earlier*
-   gives a bigger benefit.
-4. Watch the top bar: clock, water level, loss, people at risk, buildings dark,
-   budget.
-5. When the event ends you get a **resilience score (0–100) and letter grade**,
+1. **Prep screen:** review the three goals: protect people, keep lifelines online,
+   and reduce damage. Open the short explainer if you want more context.
+2. Click **Start the drill**. The clock begins at Day -5 and the storm severity
+   is revealed through the rising water.
+3. **Answer each decision card.** The clock pauses while you choose. Expand
+   **Read more**, then compare each option's cost, completion time, and effect.
+4. Watch the impact panel and 3D campus. Temporary barriers, evacuation, pumps,
+   and lifeline protection take time to finish. A permanent raised plinth takes
+   too long to help this flood, demonstrating the difference between response
+   and long-term resilience work.
+5. Track the top bar: day, water level, damage, people at risk, power, and budget.
+6. When the event ends you get a **resilience score (0–100) and letter grade**,
    with a breakdown of loss avoided, people protected, lifelines, and budget.
-6. Click **Re-run drill** to try different choices, or **Back to menu**.
+   Keeping an unused budget earns no points when outcomes are poor.
+7. Review your action sequence, then click **Re-run drill** to test a different
+   strategy or **Back to menu**.
 
 **Goal:** highest score = lowest loss, most people protected, power kept on,
 within budget.

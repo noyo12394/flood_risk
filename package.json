@@ -1,7 +1,7 @@
 {
   "name": "lehigh-flood-game",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "description": "FloodRisk FYRE — Lehigh Resilience Challenge: a 3D classroom game teaching hazard × exposure × vulnerability = risk.",
   "scripts": {
