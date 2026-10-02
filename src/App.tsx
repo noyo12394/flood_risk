@@ -64,7 +64,9 @@ export default function App() {
             and during the event and learn why{" "}
             <b>hazard × exposure × vulnerability = risk</b>.
           </p>
-          <div className="mode-cards">
+          <div
+            className={`mode-cards${PLAN_COMPARISON_IN_MAIN_FLOW ? " with-reference" : ""}`}
+          >
             <button
               className="mode-card drill"
               onClick={() => setMode("drill")}
@@ -78,17 +80,6 @@ export default function App() {
               </span>
               <span className="mc-go">Start the drill →</span>
             </button>
-            {PLAN_COMPARISON_IN_MAIN_FLOW && (
-              <button className="mode-card compare" onClick={reference}>
-                <span className="mc-tag cmp">⚖ COMPARE</span>
-                <strong>Plan Comparison</strong>
-                <span className="mc-desc">
-                  Guided dilemmas and a free builder to compare plans side by
-                  side.
-                </span>
-                <span className="mc-go">Compare plans →</span>
-              </button>
-            )}
             <button
               className="mode-card insurance"
               onClick={() => setMode("insurance")}
@@ -111,10 +102,27 @@ export default function App() {
               </span>
               <span className="mc-go">Open the lab →</span>
             </button>
+            {PLAN_COMPARISON_IN_MAIN_FLOW && (
+              <button className="mode-card compare" onClick={reference}>
+                <span className="mc-tag cmp">⚖ OPTIONAL REFERENCE</span>
+                <strong>Plan Comparison</strong>
+                <span className="mc-desc">
+                  Compare plans side by side with guided dilemmas and a free
+                  builder. Use as a drill reference or a Week 8 follow-up.
+                </span>
+                <span className="mc-go">Compare plans →</span>
+              </button>
+            )}
           </div>
-          <button className="chip" onClick={reference}>
-            Reference: Plan Comparison · optional Week 8 follow-up
-          </button>
+          {!PLAN_COMPARISON_IN_MAIN_FLOW && (
+            <div className="menu-reference">
+              <span className="menu-reference-label">Optional reference</span>
+              <button className="chip" onClick={reference}>
+                Plan Comparison →
+              </button>
+              <span className="menu-reference-note">Week 8 follow-up</span>
+            </div>
+          )}
           <details className="class-sequence">
             <summary>Suggested classroom activity sequence</summary>
             <ol>

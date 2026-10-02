@@ -153,9 +153,11 @@ verified competitive scores. Do not enter sensitive personal information.
 The existing people metric combines building occupants with service impacts and
 can count overlapping populations; it must not be interpreted as unique people.
 
-Plan Comparison remains intact as **Reference: Plan Comparison**, reachable from
-Live Drill or the menu as an optional reference / Week 8 follow-up.
-`PLAN_COMPARISON_IN_MAIN_FLOW` in `src/game/activityConfig.ts` restores its main
+All four activities appear as equal main-menu cards: Live Drill, Decision Lab ·
+Insurance Desk, Sandbox and Plan Comparison. The menu uses a two-by-two grid on
+desktop and stacks the cards on smaller screens. Plan Comparison remains an
+optional drill reference / Week 8 follow-up, also reachable from Live Drill.
+`PLAN_COMPARISON_IN_MAIN_FLOW` in `src/game/activityConfig.ts` controls its main
 menu card. Run `npm test` for model and storage checks.
 
 ### Insurance disclosure and input audit
