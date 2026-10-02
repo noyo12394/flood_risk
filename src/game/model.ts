@@ -325,7 +325,9 @@ export function runModel(scenario: FloodScenario, m: MitigationState): ModelResu
 }
 
 export function formatUSD(n: number): string {
-  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
-  if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(0)}K`
-  return `$${Math.round(n)}`
+  const sign = n < 0 ? '-' : ''
+  n = Math.abs(n)
+  if (Math.abs(n) >= 1_000_000) return `${sign}$${(n / 1_000_000).toFixed(2)}M`
+  if (Math.abs(n) >= 1_000) return `${sign}$${(n / 1_000).toFixed(0)}K`
+  return `${sign}$${Math.round(n)}`
 }

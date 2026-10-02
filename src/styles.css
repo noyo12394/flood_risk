@@ -2367,3 +2367,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .class-sequence { margin: 16px auto; color: var(--muted); font-size: 12px; text-align: left; max-width: 600px; }
 .class-sequence li { padding: 4px 0; }
 @media(max-width:850px) { .sandbox-layout { display: grid; grid-template-columns: 1fr; overflow-y: auto; inset: 100px 12px 12px; } .sandbox-layout > .panel { width: 100%; max-height: none; } .role-sandbox .lab-top { gap: 8px; } .role-sandbox .lab-top h1 { font-size: 13px; } .role-sandbox .lab-top p { font-size: 9px; } .role-sandbox .lab-top .chip { font-size: 10px; padding: 6px; } }
+/* Keep the game controls above the 3D building labels. */
+.sandbox-layout { z-index: 5; }
+.insurance-layout { z-index: 6; }
