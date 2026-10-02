@@ -19,7 +19,7 @@ when you change exposure and vulnerability — not the hazard.*
 
 ## Modes
 
-- **⏱ Live Drill (real-time decision-maker)** — begin at Day -5 with a surprise
+- **⏱ Live Drill (real-time decision-maker)** — begin at Day -5 with a selected
   storm and make emergency calls while the river rises. The clock pauses for each
   choice, and every option explains its benefit, tradeoff, cost, setup time, and
   likely effect. Unaffordable choices lock, and students can replay the same
@@ -42,19 +42,12 @@ when you change exposure and vulnerability — not the hazard.*
 
   ![decision lab](docs/decision-lab.png)
 
-- **$ Insurance Desk** — price the flood risk like an actuary. Computes each
-  building's **Expected Annual Loss** (integrated over the flood loss-exceedance
-  curve), then the full premium anatomy — pure / gross premium, loading,
-  insured value, deductible, reinsurance, **PML** at return periods, and the
-  **loss / expense / combined ratio** — under four strategies (flat,
-  hazard-scaled, actuarially fair, affordability-capped). A Coverage /
-  Affordability / Profitability triad scores the book 0–100. Data unlocks in
-  **5 progressive levels** (Inventory → Hazard → Vulnerability/EAL →
-  Affordability → Financial model). Level 5 opens the black box and traces a
-  100-year event across the owner, primary insurer, and reinsurer.
-  This ports the math and vocabulary of the FYRE Week-4 insurance tool
-  (`insurance_pricing_tool.py`) to the flood context. Engine:
-  `src/game/insurance.ts`, UI: `src/Insurance.tsx`.
+- **Decision Lab · Insurance Desk** — an information sheet with five stages.
+  Students set a price, press Submit, inspect income, expected claims, profit and
+  household coverage, then choose Next stage. Stages 1–3 expose only flat-rate
+  pricing. Vulnerability and loading arrive together at stage 4; policy limits,
+  deductibles and operating expense arrive at stage 5. No quiz grade or
+  reinsurance is used. `src/game/insurance.ts` uses the shared CAT flood losses.
 
 - **◇ Sandbox** — no clock. Switch roles, toggle mitigations across four flood
   scenarios, scan assets, and compare before/after loss at your own pace. The
@@ -164,3 +157,28 @@ Plan Comparison remains intact as **Reference: Plan Comparison**, reachable from
 Live Drill or the menu as an optional reference / Week 8 follow-up.
 `PLAN_COMPARISON_IN_MAIN_FLOW` in `src/game/activityConfig.ts` restores its main
 menu card. Run `npm test` for model and storage checks.
+
+### Insurance disclosure and input audit
+
+The original vulnerability reveal was stage 3. It is now stage 4 to honor the
+first-three-stages flat-rate requirement. Stage 3 focuses on exposure. PML is
+absent from every student screen; internal event-loss lookups still support
+hazard pricing. No later lesson requires displaying PML.
+
+All strategies and advanced metrics are absent from stages 1–3 (not disabled
+placeholders). Results appear only after Submit; the controls lock until Next
+stage. Hidden controls cannot influence early-stage pricing.
+
+The input audit fixed flat premiums using replacement value instead of insured
+value, a loading control that did not change flat-rate prices, and loading being
+counted simultaneously as price margin and operating expense. Loading now raises
+prices in flat, hazard and expected-claims pricing. Operating expense is counted
+separately. A capped strategy can stop responding to loading when its cap binds;
+that is an explicit tradeoff. Deductibles reduce loss before the coverage limit
+caps the payment. The income/claims/profit totals include an illustrative demand
+response to price; coverage means households buying a policy rather than whether
+an insurer charges enough to cover expected losses. Dorm occupants weight the
+household proxy. New pricing tests cover each input and zero/max limits.
+
+The vulnerability scale remains 0–100% damage, with clearer endpoint labels;
+no alternate numerical range was specified in the feedback.

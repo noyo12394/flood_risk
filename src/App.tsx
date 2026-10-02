@@ -451,10 +451,10 @@ function IntroScreen({
           </button>}
           <button className="mode-card insurance" onClick={onInsurance}>
             <span className="mc-tag ins">$ PRICE RISK</span>
-            <strong>Insurance Desk</strong>
+            <strong>Decision Lab · Insurance Desk</strong>
             <span className="mc-desc">
-              Price the flood risk like an actuary: expected annual loss, premiums, deductibles, PML
-              and the combined ratio — with a coverage / affordability / profitability score.
+              Read each stage’s information, set a price, and submit your decision.
+              Explore profit and coverage with no single correct answer.
             </span>
             <span className="mc-go">Open the desk →</span>
           </button>
