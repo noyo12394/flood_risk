@@ -1,12 +1,119 @@
-import test from 'node:test'
-import assert from 'node:assert/strict'
-import { DEFAULT_LEVERS as D, financialBreakdown, leversForStage, premiumFromLosses, runInsurance, coverageUptake } from '../src/game/insurance'
-const price = (patch:Partial<typeof D>)=>premiumFromLosses([0,1000000,2000000,4000000],5000000,2000000,{...D,...patch})
-test('stages 1–3 force flat pricing and ignore unrevealed inputs',()=>{for(let i=1;i<=3;i++)assert.deepEqual(leversForStage({...D,loadingFactor:0.6,strategy:'fair',insuredValuePct:0,deductiblePct:0.1},i),leversForStage({...D,strategy:'flat'},i))})
-test('flat rate and loading each increase annual price',()=>{assert.ok(price({strategy:'flat',flatRatePct:0.02}).netPremium>price({strategy:'flat',flatRatePct:0}).netPremium);for(const strategy of ['flat','hazard','fair'] as const)assert.ok(price({strategy,loadingFactor:0.6}).netPremium>price({strategy,loadingFactor:0}).netPremium)})
-test('coverage limits increase claims and deductibles reduce claims, including zero and max',()=>{assert.equal(price({insuredValuePct:0}).policyEal,0);assert.equal(price({insuredValuePct:0}).netPremium,0);assert.ok(price({insuredValuePct:1}).policyEal>price({insuredValuePct:0.5}).policyEal);assert.ok(price({deductiblePct:0.1}).policyEal<price({deductiblePct:0}).policyEal)})
-test('expense input affects costs and fair prices; affordability cap affects capped price and coverage',()=>{assert.ok(price({strategy:'fair',fixedExpense:1000}).netPremium>price({strategy:'fair',fixedExpense:0}).netPremium);assert.ok(price({strategy:'capped',affordCapPct:0.02}).netPremium>price({strategy:'capped',affordCapPct:0}).netPremium);assert.ok(coverageUptake(10000,1000000,0.02)>coverageUptake(10000,1000000,0.005));assert.equal(coverageUptake(10000,1000000,0),0)})
-test('higher flat price reduces uptake; profit equals income minus claims and expense',()=>{const low=runInsurance({...D,strategy:'flat',flatRatePct:0.001});const high=runInsurance({...D,strategy:'flat',flatRatePct:0.02});assert.ok(low.coverageShare>high.coverageShare);assert.equal(low.netIncome,low.totalPremium-low.totalEal-low.totalExpenses)})
-test('hazard strategy responds to event damage',()=>{assert.ok(premiumFromLosses([0,0,0,0],5000000,4000000,{...D,strategy:'hazard'}).netPremium>premiumFromLosses([0,0,0,0],5000000,0,{...D,strategy:'hazard'}).netPremium)})
-test('policy allocation conserves repair cost and pays deductible before applying the limit',()=>{for(const loss of [0,100000,5000000,10000000]){const r=financialBreakdown(loss,5000000,D);assert.equal(r.ownerPays+r.insurerPays,loss);assert.ok(r.insurerPays<=5000000*D.insuredValuePct)}})
-test('all edge inputs give finite outputs with no coverage at zero limit',()=>{for(const strategy of ['flat','hazard','fair','capped'] as const)for(const edge of [0,1]){const r=runInsurance({...D,strategy,loadingFactor:edge*0.6,insuredValuePct:edge,deductiblePct:edge*0.1,fixedExpense:edge*1000,flatRatePct:edge*0.02,affordCapPct:edge*0.02});for(const v of [r.totalEal,r.totalPremium,r.netIncome,r.coverageShare,r.portfolioCombinedRatio])assert.ok(Number.isFinite(v));if(!edge)assert.equal(r.insuredExposureShare,0)}})
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  DEFAULT_LEVERS as D,
+  financialBreakdown,
+  leversForStage,
+  premiumFromLosses,
+  runInsurance,
+  coverageUptake,
+} from "../src/game/insurance";
+const price = (patch: Partial<typeof D>) =>
+  premiumFromLosses([0, 1000000, 2000000, 4000000], 5000000, 2000000, {
+    ...D,
+    ...patch,
+  });
+test("stages 1–3 force flat pricing and ignore unrevealed inputs", () => {
+  for (let i = 1; i <= 3; i++)
+    assert.deepEqual(
+      leversForStage(
+        {
+          ...D,
+          loadingFactor: 0.6,
+          strategy: "fair",
+          insuredValuePct: 0,
+          deductiblePct: 0.1,
+        },
+        i,
+      ),
+      leversForStage({ ...D, strategy: "flat" }, i),
+    );
+});
+test("flat rate and loading each increase annual price", () => {
+  assert.ok(
+    price({ strategy: "flat", flatRatePct: 0.02 }).netPremium >
+      price({ strategy: "flat", flatRatePct: 0 }).netPremium,
+  );
+  for (const strategy of ["flat", "hazard", "fair"] as const)
+    assert.ok(
+      price({ strategy, loadingFactor: 0.6 }).netPremium >
+        price({ strategy, loadingFactor: 0 }).netPremium,
+    );
+});
+test("coverage limits increase claims and deductibles reduce claims, including zero and max", () => {
+  assert.equal(price({ insuredValuePct: 0 }).policyEal, 0);
+  assert.equal(price({ insuredValuePct: 0 }).netPremium, 0);
+  assert.ok(
+    price({ insuredValuePct: 1 }).policyEal >
+      price({ insuredValuePct: 0.5 }).policyEal,
+  );
+  assert.ok(
+    price({ deductiblePct: 0.1 }).policyEal <
+      price({ deductiblePct: 0 }).policyEal,
+  );
+});
+test("expense input affects costs and fair prices; affordability cap affects capped price and coverage", () => {
+  assert.ok(
+    price({ strategy: "fair", fixedExpense: 1000 }).netPremium >
+      price({ strategy: "fair", fixedExpense: 0 }).netPremium,
+  );
+  assert.ok(
+    price({ strategy: "capped", affordCapPct: 0.02 }).netPremium >
+      price({ strategy: "capped", affordCapPct: 0 }).netPremium,
+  );
+  assert.ok(
+    coverageUptake(10000, 1000000, 0.02) >
+      coverageUptake(10000, 1000000, 0.005),
+  );
+  assert.equal(coverageUptake(10000, 1000000, 0), 0);
+});
+test("higher flat price reduces uptake; profit equals income minus claims and expense", () => {
+  const low = runInsurance({ ...D, strategy: "flat", flatRatePct: 0.001 });
+  const high = runInsurance({ ...D, strategy: "flat", flatRatePct: 0.02 });
+  assert.ok(low.coverageShare > high.coverageShare);
+  assert.equal(
+    low.netIncome,
+    low.totalPremium - low.totalEal - low.totalExpenses,
+  );
+});
+test("hazard strategy responds to event damage", () => {
+  assert.ok(
+    premiumFromLosses([0, 0, 0, 0], 5000000, 4000000, {
+      ...D,
+      strategy: "hazard",
+    }).netPremium >
+      premiumFromLosses([0, 0, 0, 0], 5000000, 0, { ...D, strategy: "hazard" })
+        .netPremium,
+  );
+});
+test("policy allocation conserves repair cost and pays deductible before applying the limit", () => {
+  for (const loss of [0, 100000, 5000000, 10000000]) {
+    const r = financialBreakdown(loss, 5000000, D);
+    assert.equal(r.ownerPays + r.insurerPays, loss);
+    assert.ok(r.insurerPays <= 5000000 * D.insuredValuePct);
+  }
+});
+test("all edge inputs give finite outputs with no coverage at zero limit", () => {
+  for (const strategy of ["flat", "hazard", "fair", "capped"] as const)
+    for (const edge of [0, 1]) {
+      const r = runInsurance({
+        ...D,
+        strategy,
+        loadingFactor: edge * 0.6,
+        insuredValuePct: edge,
+        deductiblePct: edge * 0.1,
+        fixedExpense: edge * 1000,
+        flatRatePct: edge * 0.02,
+        affordCapPct: edge * 0.02,
+      });
+      for (const v of [
+        r.totalEal,
+        r.totalPremium,
+        r.netIncome,
+        r.coverageShare,
+        r.portfolioCombinedRatio,
+      ])
+        assert.ok(Number.isFinite(v));
+      if (!edge) assert.equal(r.insuredExposureShare, 0);
+    }
+});

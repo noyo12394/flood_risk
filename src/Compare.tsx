@@ -29,8 +29,8 @@ export function Compare({ onExit }: { onExit: () => void }) {
         </button>
         <div className="brand">
           <div>
-            <h1>Decision Lab</h1>
-            <p>Plan A vs Plan B — see the implications, then decide</p>
+            <h1>Reference: Plan Comparison</h1>
+            <p>Optional reference / Week 8 follow-up · Plan A vs Plan B</p>
           </div>
         </div>
         <div className="lab-tabs">

@@ -166,13 +166,22 @@ function feederDown(line: PowerLine, waterElev: number): boolean {
   return false
 }
 
-export function computeAssets(m: MitigationState, waterElev: number, extra?: ExtraRaise): AssetResult[] {
+// Optional scenario actions share the existing fragility, exposure, and cascade
+// calculation. Omitted options preserve all original Drill / Comparison behavior.
+export interface ModelEffects {
+  damageScale?: Partial<Record<string,number>>
+  backupPower?: string[]
+  evacFraction?: number
+  shelterCapacity?: number
+  recoveryFactor?: number
+}
+export function computeAssets(m: MitigationState, waterElev: number, extra?: ExtraRaise, effects: ModelEffects = {}): AssetResult[] {
   // Pass 1 — direct flood damage per asset.
   const raw = ASSETS.map((asset) => {
     const groundElev = assetGroundElev(asset)
     const threshold = assetThreshold(asset, m, extra)
     const floodDepth = Math.max(0, waterElev - threshold)
-    const damage = damageRatio(floodDepth, asset.fullDamageDepth)
+    const damage = damageRatio(floodDepth, asset.fullDamageDepth) * (effects.damageScale?.[asset.id] ?? 1)
     return { asset, groundElev, threshold, floodDepth, damage }
   })
 
@@ -182,7 +191,7 @@ export function computeAssets(m: MitigationState, waterElev: number, extra?: Ext
   const substation = raw.find((r) => r.asset.kind === 'substation')
   const substationUp = !!substation && substation.damage < 0.6
 
-  return raw.map(({ asset, groundElev, threshold, floodDepth, damage }) => {
+  const results = raw.map(({ asset, groundElev, threshold, floodDepth, damage }) => {
     const state = damageStateFor(damage)
     const loss = damage * asset.value
 
@@ -202,6 +211,8 @@ export function computeAssets(m: MitigationState, waterElev: number, extra?: Ext
       }
     }
     if (damage >= 0.6) powerReason = 'damaged'
+
+    if (effects.backupPower?.includes(asset.id) && damage < 0.6) { powered = true; powerReason = 'ok' }
 
     // A building is only truly functional if it is both undamaged enough AND
     // powered. Losing power alone takes it offline until the grid is restored.
@@ -228,12 +239,20 @@ export function computeAssets(m: MitigationState, waterElev: number, extra?: Ext
       state,
       loss,
       peopleAffected,
-      downtimeDays,
+      downtimeDays: Math.ceil(downtimeDays * (effects.recoveryFactor ?? 1)),
       functional,
       powered,
       dryButDark,
       powerReason,
     }
+  })
+  let shelterLeft = effects.shelterCapacity ?? 0
+  return results.map(r => {
+    if (r.asset.kind === 'substation') return r // people served are not evacuees
+    const afterEvac = Math.round(r.peopleAffected * (1 - Math.min(0.95,effects.evacFraction ?? 0)))
+    const sheltered = Math.min(shelterLeft,afterEvac)
+    shelterLeft -= sheltered
+    return {...r,peopleAffected:afterEvac-sheltered}
   })
 }
 

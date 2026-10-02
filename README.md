@@ -49,12 +49,12 @@ when you change exposure and vulnerability — not the hazard.*
   deductibles and operating expense arrive at stage 5. No quiz grade or
   reinsurance is used. `src/game/insurance.ts` uses the shared CAT flood losses.
 
-- **◇ Sandbox** — no clock. Switch roles, toggle mitigations across four flood
-  scenarios, scan assets, and compare before/after loss at your own pace. The
-  Risk / Insurance Analyst role now surfaces portfolio EAL, the actuarially-fair
-  premium and the combined ratio. A built-in walkthrough explains the workflow;
-  the controls can be dragged or collapsed, and a live summary explains what each
-  set of choices changed.
+- **Sandbox** — select a role and a storm before starting. Lehigh’s president,
+  Bethlehem’s mayor, the emergency management director, the utility CEO and the
+  insurance underwriter have different controls and success metrics. Spending,
+  loss prevented and benefit/cost stay visible. Review role results, then revise.
+  The mayor must choose a wall OR dike. Underwriters set prices, deductibles,
+  limits, mitigation discounts and highest-risk-zone acceptance.
 
 ## Features
 
@@ -71,11 +71,11 @@ when you change exposure and vulnerability — not the hazard.*
 - **Realistic procedural buildings** — brick / glass / concrete facades with lit
   windows, rooftop clutter and parapets, generated on a canvas (no downloaded
   assets). Windows go dark when a building loses power.
-- **Four roles** — Emergency Manager, Infrastructure Engineer, Budget Officer and
-  Risk/Insurance Analyst. Each sees the same disaster with a tailored dashboard.
-- **Five mitigations** — deployable flood barriers, storm drainage, building
-  elevation, substation raising and road elevation. Each changes hazard,
-  vulnerability or a specific lifeline.
+- **Five agency roles** with distinct decisions and consequences, sharing the
+  same flood problem.
+- **Role-specific mitigations** — campus retrofits and elevation, river wall or
+  levee, shelters and evacuation, backup power, hospital hardening, recovery and
+  insurance incentives.
 - **Four flood scenarios** — 10-, 50-, 100- and 500-year events.
 - **Live CAT dashboard** — hazard depth, exposed assets, portfolio vulnerability,
   total loss, downtime, people affected, expected annual loss and premiums.
@@ -182,3 +182,45 @@ household proxy. New pricing tests cover each input and zero/max limits.
 
 The vulnerability scale remains 0–100% damage, with clearer endpoint labels;
 no alternate numerical range was specified in the feedback.
+
+### Sandbox engine and assumptions
+
+`src/game/sandboxConfig.ts` contains all new role action costs, protection heights,
+fragility multipliers, evacuation/shelter assumptions, recovery factors and
+insurance market parameters. They are commented as illustrative teaching values,
+not real-world estimates. Budgets are enforced, and changing role clears the
+previous role’s decisions. The shared scenario configuration is reused.
+
+`src/game/sandbox.ts` composes actions and sends effective water elevations,
+threshold raises, damage scaling, protected backup power, occupant evacuation,
+shelter capacity and restoration speed into the existing `computeAssets` /
+`computeRoads` CAT engine. The added engine options default to no effect, preserving
+Live Drill and Plan Comparison. Insurance uses losses from that same engine across
+all four storms and the common pricing/financial functions.
+
+A wall protects up to a 5.0 m river peak and retains only 0.2 m protection when
+overtopped. A levee protects up to 4.6 m and loses all protection in the modeled
+breach. This is a deterministic classroom failure rule, not a hydraulic model.
+The original campus health center represents the city-serving hospital; building
+an elevated wing models replacement care at that site, rather than introducing
+an unrelated map or invented population. Backup power cannot restore a building
+with at least 60% direct physical damage. Repairs speed recovery without reducing
+the initial damage, so their loss-prevention benefit/cost can be zero.
+
+Utility power downtime is weighted by building occupancy, using grid restoration
+and substation repair duration; the substation’s customer count is excluded from
+that weighting to avoid counting the service population twice. People impact
+figures retain the existing combined occupant/service definition.
+
+Underwriters can fund a mitigation-discount program: participating dorms complete
+verified retrofits and receive reduced premiums. Costs are deducted from first-year
+and flood-year profit. A cap or decline applies to buildings above 60% damage in
+the Major baseline. Coverage is the share of exposure actually insured after the
+illustrative price-based uptake response. This is an educational market model.
+
+The suggested surrounding classroom sequence is bridge game → Live Drill → paper
+activity and the HTML decision sheet → UNDRR game. The module lists the sequence;
+external course materials are not bundled. Plan Comparison is an optional follow-up.
+
+See `docs/USER_GUIDE.md` and `docs/user-guide.html` for the current release guide.
+The retained PDF/screenshots document the earlier release.
