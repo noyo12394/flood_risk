@@ -2295,3 +2295,37 @@ canvas {
   text-decoration: underline;
   cursor: pointer;
 }
+/* Instructor feedback: accessible setup, tutorials, saved class reflection. */
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid #82b2ff; outline-offset: 3px; }
+.storm-selector { border: 0; padding: 0; margin: 20px 0; text-align: left; }
+.storm-selector legend { font-weight: 700; margin-bottom: 10px; }
+.storm-selector .chips { flex-wrap: wrap; }
+.storm-selector small { display: block; margin-top: 4px; font-weight: 400; }
+.storm-selector p, .ins-note { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.field-label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text); text-align: left; }
+.field-label input, .field-label textarea { border: 1px solid var(--line); border-radius: 9px; background: #080e1a; color: var(--text); padding: 10px; font: inherit; width: 100%; }
+.field-label textarea { min-height: 90px; }
+.team-fields, .result-metrics { display: flex; gap: 14px; flex-wrap: wrap; margin: 16px 0; }
+.team-fields > * { flex: 1; min-width: 160px; }
+.drill-preview { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; }
+.drill-preview > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 6px; }
+.drill-preview span { color: var(--muted); font-size: 11px; }
+.drill-preview strong { font-size: 13px; }
+.drill-preview small { font-size: 11px; color: var(--muted); }
+.reference-links, .tour-nav { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+.tour-layer { position: fixed; inset: 0; z-index: 200; background: #0005; }
+.tour-spot { position: fixed; border: 2px solid #86b7ff; border-radius: 12px; box-shadow: 0 0 0 200vmax #0009; pointer-events: none; }
+.tour-card { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); width: min(520px, calc(100vw - 24px)); padding: 22px; background: #13233d; border: 1px solid #82b2ff; border-radius: 18px; }
+.tour-card p { font-size: 18px; line-height: 1.5; }
+.tour-card .enter { padding: 10px 16px; font-size: 13px; }
+.comparison-modal { width: min(1100px, calc(100vw - 24px)); }
+.team-columns { display: flex; gap: 14px; overflow-x: auto; align-items: stretch; padding: 10px 0; }
+.team-result { min-width: 260px; flex: 1; border: 1px solid var(--line); border-radius: 14px; padding: 16px; background: #101b2e; }
+.team-result dt { font-size: 12px; color: var(--muted); }
+.team-result dd { margin: 2px 0 10px; font-weight: bold; }
+.team-result li { margin-bottom: 12px; font-size: 13px; }
+.team-result li span, .team-result li small { display: block; color: var(--muted); margin-top: 4px; }
+.reflection-task { border-left: 3px solid #59a7ff; background: #172b4055; padding: 8px 16px; margin: 20px 0; font-size: 13px; line-height: 1.6; }
+.drill-prep { max-height: calc(100vh - 24px); overflow-y: auto; }
+@media(max-width:600px) { .drill-preview { grid-template-columns: 1fr; } .tour-card { bottom: 8px; padding: 16px; } }

@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type PointerEvent } from 'react'
 import { Scene } from './three/Scene'
+import { PLAN_COMPARISON_IN_MAIN_FLOW } from './game/activityConfig'
 import { Drill } from './Drill'
 import { Compare } from './Compare'
 import { Insurance } from './Insurance'
@@ -24,6 +25,7 @@ import { DAMAGE_COLORS } from './three/Building'
 
 export default function App() {
   const [mode, setMode] = useState<'menu' | 'sandbox' | 'drill' | 'compare' | 'insurance'>('menu')
+  const [referenceReturn, setReferenceReturn] = useState<'menu' | 'drill'>('menu')
   const [scenarioId, setScenarioId] = useState<(typeof SCENARIOS)[number]['id']>('major')
   const [role, setRole] = useState<RoleId>('engineer')
   const [mitigations, setMitigations] = useState<MitigationState>({ ...EMPTY_MITIGATIONS })
@@ -85,8 +87,8 @@ export default function App() {
     window.addEventListener('pointerup', stop)
   }
 
-  if (mode === 'drill') return <Drill onExit={() => setMode('menu')} />
-  if (mode === 'compare') return <Compare onExit={() => setMode('menu')} />
+  if (mode === 'drill') return <Drill onExit={() => setMode('menu')} onReference={() => { setReferenceReturn('drill'); setMode('compare') }} />
+  if (mode === 'compare') return <Compare onExit={() => setMode(referenceReturn)} />
   if (mode === 'insurance') return <Insurance onExit={() => setMode('menu')} />
 
   return (
@@ -438,7 +440,7 @@ function IntroScreen({
             </span>
             <span className="mc-go">Start the drill →</span>
           </button>
-          <button className="mode-card compare" onClick={onCompare}>
+          {PLAN_COMPARISON_IN_MAIN_FLOW && <button className="mode-card compare" onClick={onCompare}>
             <span className="mc-tag cmp">⚖ COMPARE</span>
             <strong>Decision Lab</strong>
             <span className="mc-desc">
@@ -446,7 +448,7 @@ function IntroScreen({
               dilemmas that teach the concepts, plus a free builder to compare your own two plans.
             </span>
             <span className="mc-go">Compare plans →</span>
-          </button>
+          </button>}
           <button className="mode-card insurance" onClick={onInsurance}>
             <span className="mc-tag ins">$ PRICE RISK</span>
             <strong>Insurance Desk</strong>
@@ -467,6 +469,7 @@ function IntroScreen({
           </button>
         </div>
 
+        <button className="chip" onClick={onCompare}>Reference: Plan Comparison · optional follow-up</button>
         <p className="foot">FYRE v{FYRE_VERSION} · Educational model with simplified fragility &amp; cost data</p>
       </div>
     </div>

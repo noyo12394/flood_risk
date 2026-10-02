@@ -131,3 +131,36 @@ at [vercel.com/new](https://vercel.com/new) and deploy — no configuration need
 ## Controls
 
 Drag to orbit · scroll to zoom · click any asset to scan it.
+
+## Classroom drill updates (October 2026)
+
+Live Drill requires a team name and an explicit storm choice. `SCENARIOS` in
+`src/game/data.ts` is the single storm configuration: Minor 1.6 m, Moderate 3.0 m,
+Major 4.4 m, Extreme 5.8 m. The flood curve is deterministic, and the drill uses
+fixed simulation steps. The 100-second countdown pauses for decisions. A first-run
+spotlight tutorial runs before the drill and can be skipped or replayed.
+
+### How class scores are maintained
+
+There is no backend. `src/game/results.ts` defines a small `ResultStore` interface.
+The local implementation writes up to 1,000 completed runs to browser localStorage
+under `fyre.drill.results.v1`, with an in-memory fallback when storage is blocked or
+full. Each run records its team, optional class/session code, storm, score,
+loss avoided, people protected, spend, ordered decisions and timestamp. Replays
+are separate runs. Importing the same run ID twice replaces that record.
+
+Results survive refreshes in the same browser and origin until browser data is
+cleared. They are not shared automatically across devices, browsers or preview
+URLs. Teams use **Copy result** after a drill; instructors paste that JSON into
+**Compare team results → Import result** on their own device. The comparison is
+filtered by exact storm and class/session code, and highlights tied leaders in
+score and loss avoided. Copied results are editable teaching records, not
+verified competitive scores. Do not enter sensitive personal information.
+
+The existing people metric combines building occupants with service impacts and
+can count overlapping populations; it must not be interpreted as unique people.
+
+Plan Comparison remains intact as **Reference: Plan Comparison**, reachable from
+Live Drill or the menu as an optional reference / Week 8 follow-up.
+`PLAN_COMPARISON_IN_MAIN_FLOW` in `src/game/activityConfig.ts` restores its main
+menu card. Run `npm test` for model and storage checks.

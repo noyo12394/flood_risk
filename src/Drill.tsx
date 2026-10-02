@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { StormSelector, type StormId } from './StormSelector'
+import { DrillTutorial, tutorialSeen } from './DrillTutorial'
+import { TeamComparison } from './TeamComparison'
+import { resultStore, type TeamResult } from './game/results'
 import { Scene } from './three/Scene'
 import { SCENARIOS, type FloodScenario } from './game/data'
 import { EMPTY_MITIGATIONS, formatUSD } from './game/model'
@@ -42,11 +46,19 @@ interface PendingOperation {
   option: DecisionOption
 }
 
-export function Drill({ onExit }: { onExit: () => void }) {
+export function Drill({ onExit, onReference }: { onExit: () => void; onReference: () => void }) {
   const [phase, setPhase] = useState<Phase>('prep')
-  const [scenarioId, setScenarioId] = useState<(typeof SCENARIOS)[number]['id']>('major')
+  const [scenarioId, setScenarioId] = useState<StormId | ''>('')
   const scenarioRef = useRef<FloodScenario>(SCENARIOS.find((item) => item.id === 'major')!)
-  const scenario = SCENARIOS.find((item) => item.id === scenarioId)!
+  const scenario = SCENARIOS.find((item) => item.id === scenarioId) ?? SCENARIOS[2]
+  const [team, setTeam] = useState('')
+  const [session, setSession] = useState('')
+  const [showTutorial, setShowTutorial] = useState(() => !tutorialSeen())
+  const [showComparison, setShowComparison] = useState(false)
+  const [savedResult, setSavedResult] = useState<TeamResult | null>(null)
+  const [storageMessage, setStorageMessage] = useState('')
+  const [copyText, setCopyText] = useState('')
+  const runIdRef = useRef('')
 
   const effectsRef = useRef<DrillEffects>(emptyEffects())
   const maxWaterRef = useRef(-3)
@@ -72,11 +84,18 @@ export function Drill({ onExit }: { onExit: () => void }) {
     if (phase !== 'live') return
     let frame = 0
     let last = performance.now()
+    let accumulator = 0
 
     const loop = (now: number) => {
       const deltaSeconds = Math.min(0.1, (now - last) / 1000)
       last = now
-      if (!pausedDecisionRef.current) clockRef.current = Math.min(DRILL_DURATION, clockRef.current + deltaSeconds)
+      if (pausedDecisionRef.current) accumulator = 0
+      else accumulator += deltaSeconds
+      // Fixed simulation steps give every team the same flood and completion timing.
+      while (accumulator >= 0.02 && !pausedDecisionRef.current) {
+      accumulator -= 0.02
+      const nextAt = DECISIONS.find(d => !resolvedRef.current[d.id])?.at
+      clockRef.current = Math.min(DRILL_DURATION, clockRef.current + 0.02, nextAt === undefined ? DRILL_DURATION : nextAt * DRILL_DURATION)
 
       const progress = clockRef.current / DRILL_DURATION
       const activeScenario = scenarioRef.current
@@ -116,6 +135,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
         finish(nextSnapshot)
         return
       }
+      }
       frame = requestAnimationFrame(loop)
     }
 
@@ -126,9 +146,11 @@ export function Drill({ onExit }: { onExit: () => void }) {
   }, [phase])
 
   function beginDrill(reuseScenario = false) {
-    const pickedScenario = reuseScenario
-      ? scenarioRef.current
-      : SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)]
+    if (showTutorial || !team.trim() || (!reuseScenario && !scenarioId)) return
+    const pickedScenario = reuseScenario ? scenarioRef.current : scenario
+    runIdRef.current = crypto.randomUUID()
+    setSavedResult(null)
+    setCopyText('')
     scenarioRef.current = pickedScenario
     setScenarioId(pickedScenario.id)
     effectsRef.current = emptyEffects()
@@ -159,6 +181,29 @@ export function Drill({ onExit }: { onExit: () => void }) {
     pausedDecisionRef.current = null
     setPausedDecisionId(null)
     setPhase('debrief')
+  }
+
+  useEffect(() => {
+    if (phase !== 'debrief' || !scorecard) return
+    const result: TeamResult = {
+      version: 1, id: runIdRef.current, team: team.trim(), session: session.trim(),
+      stormId: scenarioRef.current.id, score: scorecard.score,
+      lossAvoided: scorecard.lossAvoided, peopleProtected: scorecard.peopleSafe,
+      budgetSpent: scorecard.totalSpend,
+      decisions: actions.map(a => ({ label: a.label, cost: a.cost, day: a.chosenDay, note: a.note })),
+      createdAt: new Date().toISOString(),
+    }
+    const stored = resultStore.save(result)
+    setSavedResult(result)
+    setStorageMessage(stored ? 'Result saved in this browser.' : 'Browser storage unavailable; copy this result before leaving.')
+  }, [phase, scorecard, actions, team, session])
+
+  async function copyResult() {
+    if (!savedResult) return
+    const text = JSON.stringify(savedResult)
+    setCopyText(text)
+    try { await navigator.clipboard.writeText(text); setStorageMessage('Result copied. Paste it into Import result on the instructor’s device.') }
+    catch { setStorageMessage('Select and copy the result text below.') }
   }
 
   function choose(decisionId: string, option: DecisionOption) {
@@ -261,9 +306,12 @@ export function Drill({ onExit }: { onExit: () => void }) {
             <p className="eyebrow">LIVE DRILL · EMERGENCY RESPONSE</p>
             <h2>Ready to run the response?</h2>
             <p className="prep-lead">
-              A surprise storm is coming. You start at <b>Day -5</b> with a <b>{formatUSD(EMERGENCY_BUDGET)}</b> response budget.
+              Choose the storm your team will face. You start at <b>Day -5</b> with a <b>{formatUSD(EMERGENCY_BUDGET)}</b> response budget.
               When a decision appears, the clock pauses so you can think. Your actions may take hours or days to finish.
             </p>
+            <div data-tour="storm"><StormSelector value={scenarioId} onChange={setScenarioId}/></div>
+            <div className="team-fields"><label className="field-label">Team name<input value={team} maxLength={80} onChange={e => setTeam(e.target.value)} placeholder="e.g. River Rangers"/></label><label className="field-label">Class / session code<input value={session} maxLength={40} onChange={e => setSession(e.target.value)} placeholder="Optional"/></label></div>
+            <div className="drill-preview"><div data-tour="timer"><span>Timer</span><strong>{DRILL_DURATION} seconds left</strong><small>Day -5 → Day +2 · paused for choices</small></div><div data-tour="budget"><span>Budget left</span><strong>{formatUSD(EMERGENCY_BUDGET)}</strong></div><div data-tour="actions"><span>Action controls</span><strong>Barriers → People → Pumps → Power</strong><small>Choose an option at each paused decision.</small></div><div data-tour="results"><span>Score / results</span><strong>Score · loss avoided · people protected</strong><small>Compare your response with other teams.</small></div></div>
             <div className="drill-rules">
               <div><b>Protect people</b><span>Move people before roads close.</span></div>
               <div><b>Keep lifelines online</b><span>Power and health services matter.</span></div>
@@ -271,12 +319,13 @@ export function Drill({ onExit }: { onExit: () => void }) {
             </div>
             <details className="prep-more">
               <summary>What kinds of choices will I make?</summary>
-              <p>You will choose barrier strength and location, a people-protection plan, pumping capacity, and a lifeline response. The storm strength is revealed only after you begin.</p>
+              <p>You will choose barrier strength and location, a people-protection plan, pumping capacity, and a lifeline response. Your selected storm stays fixed for this run.</p>
             </details>
             <div className="prep-foot">
               <div className="budget"><span className="lbl">Response budget</span><strong>{formatUSD(EMERGENCY_BUDGET)}</strong></div>
-              <button className="enter drill-start" onClick={() => beginDrill(false)}>Start the drill →</button>
+              <button className="enter drill-start" disabled={!scenarioId || !team.trim() || showTutorial} onClick={() => beginDrill(false)}>Start the drill →</button>
             </div>
+            <div className="reference-links"><button className="chip" onClick={() => setShowTutorial(true)}>Replay tutorial</button><button className="chip" onClick={() => setShowComparison(true)}>Compare team results</button><button className="chip" onClick={onReference}>Reference: Plan Comparison</button></div><p className="ins-note">Plan Comparison is an optional reference and possible Week 8 follow-up.</p>
           </div>
         </div>
       )}
@@ -287,7 +336,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
             <button className="menu-back sm" onClick={onExit}>✕</button>
             <div className="clock">
               <span className="clbl">{clockLabel.label} · {scenario.label} forecast</span>
-              <strong>{clockLabel.time}</strong>
+              <strong>{Math.ceil(DRILL_DURATION - clock)}s left</strong><span>{clockLabel.time}</span>
               <div className="clock-bar"><div className="clock-fill" style={{ width: `${t01 * 100}%` }} /></div>
             </div>
             {currentDecision && <span className="pause-pill">Paused while you choose</span>}
@@ -333,7 +382,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
                   <details className="d-more"><summary>Read more</summary><p>{currentDecision.readMore}</p></details>
                   <div className="d-opts">
                     {currentDecision.options.map((option) => {
-                      const cost = decisionCost(option, scenarioId)
+                      const cost = decisionCost(option, scenario.id)
                       const unaffordable = cost > remaining
                       return (
                         <button
@@ -381,6 +430,7 @@ export function Drill({ onExit }: { onExit: () => void }) {
       {phase === 'debrief' && scorecard && (
         <div className="modal-back">
           <div className="modal scorecard drill-scorecard">
+            <h2>{team.trim()} · {scenario.label} storm</h2><div className="result-metrics"><LiveStat label="Loss avoided" value={formatUSD(scorecard.lossAvoided)}/><LiveStat label="People protected*" value={scorecard.peopleSafe.toLocaleString()}/><LiveStat label="Budget spent" value={formatUSD(scorecard.totalSpend)}/></div><p className="ins-note">*Occupants and service impacts; not a count of unique people.</p>
             <p className="eyebrow">DRILL COMPLETE · {scenario.label.toUpperCase()} FLOOD · FYRE v{FYRE_VERSION}</p>
             <div className="score-hero">
               <div className={`score-ring g-${scorecard.grade[0]}`}><span className="score-num">{scorecard.score}</span><span className="score-of">/ 100</span></div>
@@ -409,15 +459,19 @@ export function Drill({ onExit }: { onExit: () => void }) {
                 ? 'Try a different sequence. Fast actions that finish before flood peak protect more people and prevent more damage. Saving every dollar does not create resilience.'
                 : `Your response prevented ${formatUSD(scorecard.lossAvoided)} in damage and protected ${scorecard.peopleSafe.toLocaleString()} people. Re-run it to test whether a different order works better.`}
             </p>
+            <div className="reflection-task"><h3>Compare and reflect together</h3><p>For this flood level, who scored most and who avoided the most loss? Identify the decisions that worked well and explain their tradeoffs.</p></div>
+            <div className="reference-links"><button className="chip" onClick={copyResult}>Copy result</button><button className="chip" onClick={() => setShowComparison(true)}>Compare team results / Import result</button><button className="chip" onClick={onReference}>Reference: Plan Comparison</button></div><p role="status">{storageMessage}</p>{copyText && <label className="field-label">Result to copy<textarea readOnly value={copyText} onFocus={e => e.target.select()}/></label>}
             <div className="score-actions drill-replay-actions">
               <button className="enter" onClick={() => beginDrill(true)}>Retry same storm</button>
-              <button className="enter alt" onClick={() => beginDrill(false)}>New random storm</button>
+              <button className="enter alt" onClick={() => setPhase('prep')}>Choose another storm</button>
               <button className="enter alt" onClick={onExit}>Back to menu</button>
             </div>
           </div>
         </div>
       )}
 
+      {showTutorial && phase === 'prep' && <DrillTutorial onClose={() => setShowTutorial(false)}/>}
+      {showComparison && <TeamComparison stormId={scenario.id} session={session} onClose={() => setShowComparison(false)}/>}
       {phase === 'live' && !currentDecision && <div className="hint">The clock is moving · watch operations finish · click a building to inspect it</div>}
     </div>
   )
